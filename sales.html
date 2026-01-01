@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Terminal - Inventory & Sales</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+</head>
+<body>
+    <nav class="sidebar">
+        <h2>Inventory App</h2>
+        <ul>
+            <li><a href="dashboard.html">Dashboard</a></li>
+            <li><a href="inventory.html">Inventory</a></li>
+            <li><a href="sales.html" class="active">Sales</a></li>
+        </ul>
+        <button id="logoutBtn">Logout</button>
+    </nav>
+    <main class="main-content">
+        <h1>Sales Terminal</h1>
+
+        <div class="sales-layout">
+            <!-- Left: Product Selection -->
+            <div class="sales-grid-container">
+                <div class="search-container" style="width: 100%;">
+                    <input type="text" id="salesSearchInput" placeholder="Search products to sell..." style="width: 100%;">
+                    <div class="search-icon">🔍</div>
+                </div>
+                <button id="startScanBtn" class="btn-secondary" style="width: 100%; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    📷 Scan Barcode
+                </button>
+                <div id="salesProductGrid" class="sales-product-grid">
+                    <!-- Products injected here -->
+                    <div class="loading"></div>
+                </div>
+            </div>
+
+            <!-- Right: Sale Form -->
+            <div class="sales-panel">
+                <div class="selected-product-info" style="border-bottom: none; padding-bottom: 0; margin-bottom: 10px;">
+                    <h3>Current Order</h3>
+                </div>
+
+                <div id="cartItems" class="cart-items-list">
+                    <div class="empty-cart-message">Cart is empty</div>
+                </div>
+
+                <div class="cart-summary">
+                    <div class="summary-row">
+                        <span>Subtotal:</span>
+                        <span id="cartSubtotal">₦0.00</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Discount (₦):</span>
+                        <input type="number" id="cartDiscount" placeholder="0" min="0">
+                    </div>
+                    <div class="summary-row total">
+                        <span>Total:</span>
+                        <span id="cartTotal">₦0.00</span>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 20px;">
+                    <label for="paymentMethod">Payment Method</label>
+                    <select id="paymentMethod">
+                        <option value="Cash">Cash</option>
+                        <option value="POS">POS / Card</option>
+                        <option value="Transfer">Bank Transfer</option>
+                    </select>
+                </div>
+
+                <button id="checkoutBtn" class="btn-primary" style="width: 100%; margin-top: 20px;" disabled>
+                    Checkout
+                </button>
+
+                <div id="saleSummary" class="alerts hidden" style="margin-top: 20px;">
+                    <ul>
+                        <li id="summaryText" class="text-success"></li>
+                    </ul>
+                    <button id="generateReceiptBtn" class="btn-secondary" style="width: 100%; margin-top: 10px;">Print Receipt</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="recent-sales">
+            <h2>Recent Sales</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Qty</th>
+                        <th>Sold At</th>
+                        <th>Profit</th>
+                        <th>Date</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="salesTableBody"></tbody>
+            </table>
+        </div>
+
+        <!-- Scanner Modal -->
+        <div id="scannerModal" class="modal-overlay hidden">
+            <div class="modal-content" style="max-width: 400px;">
+                <div class="modal-header">
+                    <h2>Scan Product</h2>
+                    <button type="button" class="modal-close" id="closeScannerModal">&times;</button>
+                </div>
+                <div id="reader" style="width: 100%;"></div>
+            </div>
+        </div>
+    </main>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="firebase.js"></script>
+    <script src="auth.js"></script>
+    <script src="sales.js"></script>
+</body>
+</html>

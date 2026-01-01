@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Inventory & Sales</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#6366f1">
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+</head>
+<body>
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">
+                <div class="sidebar-logo-icon">📦</div>
+                <div class="sidebar-logo-text">Inventory</div>
+            </div>
+        </div>
+        <div class="sidebar-nav">
+            <ul class="sidebar-nav-list">
+                <li class="sidebar-nav-item">
+                    <a href="dashboard.html" class="sidebar-nav-link active">
+                        <span class="sidebar-nav-icon">📊</span>
+                        Dashboard
+                    </a>
+                </li>
+                <li class="sidebar-nav-item">
+                    <a href="inventory.html" class="sidebar-nav-link">
+                        <span class="sidebar-nav-icon">📦</span>
+                        Inventory
+                    </a>
+                </li>
+                <li class="sidebar-nav-item">
+                    <a href="sales.html" class="sidebar-nav-link">
+                        <span class="sidebar-nav-icon">💰</span>
+                        Sales
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <div class="sidebar-footer">
+            <button id="logoutBtn" class="sidebar-logout-btn">
+                <span>🚪</span>
+                Logout
+            </button>
+        </div>
+    </nav>
+    <main class="main-content">
+        <div class="main-header">
+            <h1 class="main-title">Dashboard</h1>
+            <p class="main-subtitle">Welcome back! Here's your business overview.</p>
+        </div>
+
+        <div class="dashboard-controls flex justify-between items-center gap-4 mb-8">
+            <div class="date-range flex items-center gap-3">
+                <input type="date" id="startDate" class="form-input">
+                <span class="text-secondary">to</span>
+                <input type="date" id="endDate" class="form-input">
+                <button id="filterBtn" class="btn btn-primary">Filter</button>
+            </div>
+            <div class="action-buttons flex gap-2">
+                <button id="aiAssistantBtn" class="btn btn-primary shadow-lg" style="background: var(--gradient-accent); display: inline-flex !important; border: 1px solid white;">
+                    <span>🤖</span> AI Assistant
+                </button>
+                <button id="exportBtn" class="btn btn-success" style="background: var(--success);">
+                    <span>📥</span> Export
+                </button>
+                <button id="settingsBtn" class="btn btn-secondary" style="background: var(--secondary);">
+                    <span>⚙️</span> Settings
+                </button>
+            </div>
+            <button id="addExpenseBtn" class="btn btn-danger">
+                <span>➕</span>
+                Record Expense
+            </button>
+        </div>
+
+        <div class="dashboard-cards grid grid-cols-4 gap-6 mb-12">
+            <div class="dashboard-card">
+                <div class="dashboard-card-icon">📦</div>
+                <div class="dashboard-card-title">Total Products</div>
+                <div class="dashboard-card-value" id="totalProducts">0</div>
+            </div>
+            <div class="dashboard-card">
+                <div class="dashboard-card-icon">💰</div>
+                <div class="dashboard-card-title">Stock Value</div>
+                <div class="dashboard-card-value" id="totalStockValue">₦0</div>
+            </div>
+            <div class="dashboard-card">
+                <div class="dashboard-card-icon">📈</div>
+                <div class="dashboard-card-title">Today's Sales</div>
+                <div class="dashboard-card-value" id="todaySales">₦0</div>
+            </div>
+            <div class="dashboard-card">
+                <div class="dashboard-card-icon">💵</div>
+                <div class="dashboard-card-title">Today's Profit</div>
+                <div class="dashboard-card-value" id="todayProfit">₦0</div>
+            </div>
+            <div class="dashboard-card">
+                <div class="dashboard-card-icon">📊</div>
+                <div class="dashboard-card-title">Total Profit</div>
+                <div class="dashboard-card-value" id="totalProfit">₦0</div>
+            </div>
+            <div class="dashboard-card">
+                <div class="dashboard-card-icon">💸</div>
+                <div class="dashboard-card-title">Total Expenses</div>
+                <div class="dashboard-card-value" id="totalExpenses">₦0</div>
+            </div>
+            <div class="dashboard-card">
+                <div class="dashboard-card-icon">🎯</div>
+                <div class="dashboard-card-title">Net Profit</div>
+                <div class="dashboard-card-value" id="netProfit">₦0</div>
+            </div>
+        </div>
+        <div class="alerts">
+            <h2 class="alerts-title">Low Stock Alerts</h2>
+            <div class="alerts-list" id="lowStockList">
+                <!-- Alerts will be populated here -->
+            </div>
+        </div>
+
+        <div class="analytics">
+            <h2 class="analytics-title">Analytics Overview</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <div class="chart-container">
+                    <div id="salesChart"></div>
+                </div>
+                <div class="chart-container">
+                    <div id="profitChart"></div>
+                </div>
+            </div>
+            <div class="analytics-cards grid grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="analytics-card">
+                    <div class="analytics-card-title">Most Sold Product</div>
+                    <div class="analytics-card-value" id="mostSoldProduct">-</div>
+                </div>
+                <div class="analytics-card">
+                    <div class="analytics-card-title">Best Profit Product</div>
+                    <div class="analytics-card-value" id="bestProfitProduct">-</div>
+                </div>
+                <div class="analytics-card">
+                    <div class="analytics-card-title">Sales Today</div>
+                    <div class="analytics-card-value" id="salesToday">0</div>
+                </div>
+                <div class="analytics-card">
+                    <div class="analytics-card-title">Sales This Week</div>
+                    <div class="analytics-card-value" id="salesThisWeek">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Modal -->
+        <div id="aiModal" class="modal-overlay hidden">
+            <div class="modal-content" style="max-width: 600px;">
+                <div class="modal-header">
+                    <h2>🤖 AI Business Advisor</h2>
+                    <button type="button" class="modal-close" id="closeAiModal">&times;</button>
+                </div>
+                <div class="ai-body" style="padding: 20px; max-height: 60vh; overflow-y: auto;">
+                    <div id="aiResponse" style="white-space: pre-wrap; line-height: 1.6; color: var(--text-secondary);">
+                        Analyzing your data...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expense Modal -->
+        <div id="expenseModal" class="modal-overlay hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Record Expense</h2>
+                    <button type="button" class="modal-close" id="closeExpenseModal">&times;</button>
+                </div>
+                <form id="expenseForm" class="product-form">
+                    <div class="form-group">
+                        <label for="expenseDesc">Description</label>
+                        <input type="text" id="expenseDesc" placeholder="e.g., Shop Rent, Fuel" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="expenseAmount">Amount (₦)</label>
+                        <input type="number" id="expenseAmount" placeholder="0.00" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="expenseCategory">Category</label>
+                        <select id="expenseCategory">
+                            <option value="Rent">Rent</option>
+                            <option value="Utilities">Utilities (Light/Water)</option>
+                            <option value="Salaries">Salaries</option>
+                            <option value="Transportation">Transportation</option>
+                            <option value="Maintenance">Maintenance</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="expenseDate">Date</label>
+                        <input type="date" id="expenseDate" required>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary" style="background: var(--danger-gradient);">Save Expense</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Settings Modal -->
+        <div id="settingsModal" class="modal-overlay hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Shop Settings</h2>
+                    <button type="button" class="modal-close" id="closeSettingsModal">&times;</button>
+                </div>
+                <form id="settingsForm" class="product-form">
+                    <div class="form-group">
+                        <label>Shop Name</label>
+                        <input type="text" id="settingShopName" placeholder="My Awesome Store">
+                    </div>
+                    <div class="form-group">
+                        <label>Phone / WhatsApp</label>
+                        <input type="text" id="settingPhone" placeholder="2348012345678">
+                    </div>
+                    <div class="form-group">
+                        <label>Address</label>
+                        <input type="text" id="settingAddress" placeholder="Shop 5, Market Road...">
+                    </div>
+                    <div class="form-group">
+                        <label>Gemini API Key (for AI)</label>
+                        <input type="password" id="settingApiKey" placeholder="Paste your AIza... key here">
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">Save Settings</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    <script src="firebase.js"></script>
+    <script src="auth.js"></script>
+    <script src="dashboard.js"></script>
+</body>
+</html>
