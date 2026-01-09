@@ -194,6 +194,7 @@ document.getElementById('checkoutBtn').addEventListener('click', async () => {
     
     // Feature: Customer Database (Simple)
     const customerName = prompt("Enter Customer Name (Optional):") || "Walk-in Customer";
+    const customerPhone = prompt("Enter Customer WhatsApp Number (e.g. 23480...):") || "";
 
     // Calculate discount ratio to distribute discount across items for accurate profit tracking
     const discountRatio = subtotal > 0 ? (subtotal - discount) / subtotal : 1;
@@ -226,7 +227,8 @@ document.getElementById('checkoutBtn').addEventListener('click', async () => {
                 date: saleDate,
                 paymentMethod: paymentMethod,
                 seller: currentUser.email,
-                customer: customerName
+                customer: customerName,
+                customerPhone: customerPhone
             });
 
             const productDoc = productsRef.doc(item.id);
@@ -259,7 +261,8 @@ document.getElementById('checkoutBtn').addEventListener('click', async () => {
             discount: discount,
             total: subtotal - discount,
             paymentMethod: paymentMethod,
-            customer: customerName
+            customer: customerName,
+            customerPhone: customerPhone
         };
         sessionStorage.setItem('receiptData', JSON.stringify(receiptData));
 

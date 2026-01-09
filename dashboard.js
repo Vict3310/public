@@ -28,7 +28,15 @@ function initAuthListener() {
             currentUser = user;
             // Fetch User Role
             const userDoc = await db.collection('users').doc(user.uid).get();
-            currentUser.role = userDoc.data()?.role || 'admin';
+            const userData = userDoc.data();
+
+            // Payment Wall Check
+            if (userData?.accountStatus === 'pending') {
+                window.location.href = "payment.html";
+                return;
+            }
+
+            currentUser.role = userData?.role || 'admin';
             setupDateDefaults();
             initRealtimeDashboard();
             loadSettings();
@@ -45,7 +53,7 @@ async function loadSettings() {
     const doc = await db.collection('users').doc(currentUser.uid).get();
     const data = doc.data();
     if (data) {
-        localStorage.setItem('shopSettings', JSON.stringify(data)); // Cache for other pages
+        localStorage.setItem(`shopSettings_${currentUser.uid}`, JSON.stringify(data)); // Cache for other pages (user-specific)
         // Update UI if needed
     }
 }
@@ -621,10 +629,11 @@ if (settingsForm) {
         const apiKey = document.getElementById('settingApiKey').value;
 
         try {
-            await db.collection('users').doc(currentUser.uid).update({
+            await db.collection('users').doc(currentUser.uid).set({
                 shopName, phone, address, apiKey
-            });
-            localStorage.setItem('shopSettings', JSON.stringify({ shopName, phone, address, apiKey }));
+            }, { merge: true });
+            // Save to user-specific localStorage key
+            localStorage.setItem(`shopSettings_${currentUser.uid}`, JSON.stringify({ shopName, phone, address, apiKey }));
             settingsModal.classList.add('hidden');
             showNotification("Settings saved!", "success");
         } catch (error) {
@@ -640,10 +649,39 @@ const aiModal = document.getElementById('aiModal');
 const closeAiModal = document.getElementById('closeAiModal');
 const aiResponse = document.getElementById('aiResponse');
 
+// Rate limiting for AI requests
+let lastAiRequestTime = 0;
+const AI_COOLDOWN_MS = 30000; // 30 seconds between requests
+
 if (aiBtn) {
     aiBtn.addEventListener('click', async () => {
-        // 1. Get API Key
-        const settings = JSON.parse(localStorage.getItem('shopSettings')) || {};
+        // Check rate limiting
+        const now = Date.now();
+        if (now - lastAiRequestTime < AI_COOLDOWN_MS) {
+            const remainingTime = Math.ceil((AI_COOLDOWN_MS - (now - lastAiRequestTime)) / 1000);
+            aiModal.classList.remove('hidden');
+            aiResponse.innerHTML = `<span style="color:var(--warning)">Please wait ${remainingTime} seconds before requesting another AI analysis.</span>`;
+            return;
+        }
+        
+        // 1. Get API Key from user-specific settings
+        let settings = JSON.parse(localStorage.getItem(`shopSettings_${currentUser.uid}`)) || {};
+        
+        // Fallback: Load from Firestore if localStorage is empty
+        if (!settings.apiKey) {
+            try {
+                const doc = await db.collection('users').doc(currentUser.uid).get();
+                const data = doc.data();
+                if (data && data.apiKey) {
+                    settings = data;
+                    // Cache in localStorage for faster future access
+                    localStorage.setItem(`shopSettings_${currentUser.uid}`, JSON.stringify(settings));
+                }
+            } catch (error) {
+                console.error("Error loading user settings:", error);
+            }
+        }
+        
         // Use saved key or the default one provided
         const apiKey = settings.apiKey || 'AIzaSyBIQf-hPJji-7-nwEsukdiS_UzRVlTOGGI';
 
@@ -674,11 +712,15 @@ if (aiBtn) {
 
         // 4. Call Gemini API
         try {
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }]
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: {
+                        maxOutputTokens: 500, // Limit response length to save costs
+                        temperature: 0.7
+                    }
                 })
             });
 
@@ -696,10 +738,24 @@ if (aiBtn) {
                 .replace(/\n/g, '<br>'); // New lines
 
             aiResponse.innerHTML = formattedText;
+            
+            // Update rate limiting timestamp on successful request
+            lastAiRequestTime = Date.now();
 
         } catch (error) {
             console.error("AI Error:", error);
-            aiResponse.innerHTML = `<span style="color:var(--danger)">Error: ${error.message}</span>`;
+            
+            // Handle specific error types with better user guidance
+            let errorMessage = error.message;
+            if (error.message.includes('quota') || error.message.includes('billing')) {
+                errorMessage = `API quota exceeded. Please check your Google AI Studio billing at: <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--primary)">Google AI Studio</a> or upgrade your plan.`;
+            } else if (error.message.includes('API_KEY')) {
+                errorMessage = `Invalid API key. Please check your Gemini API key in Settings.`;
+            } else if (error.message.includes('network') || error.message.includes('fetch')) {
+                errorMessage = `Network error. Please check your internet connection and try again.`;
+            }
+            
+            aiResponse.innerHTML = `<span style="color:var(--danger)">${errorMessage}</span>`;
         }
     });
 }

@@ -19,14 +19,69 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Load Shop Settings for Receipt
-const settings = JSON.parse(localStorage.getItem('shopSettings')) || {};
-if (settings.shopName) {
-    // Inject shop name into header if element exists, or create it
-    const header = document.querySelector('.receipt-header h1');
-    if (header) header.textContent = settings.shopName;
+let settings = {};
+
+auth.onAuthStateChanged(async user => {
+    if (user) {
+        // 1. Try LocalStorage first (fast load)
+        const cached = localStorage.getItem(`shopSettings_${user.uid}`);
+        if (cached) {
+            settings = JSON.parse(cached);
+            applySettings();
+        }
+
+        // 2. Fetch from Firestore (ensure up-to-date)
+        try {
+            const doc = await db.collection('users').doc(user.uid).get();
+            if (doc.exists) {
+                const data = doc.data();
+                settings = { ...settings, ...data };
+                localStorage.setItem(`shopSettings_${user.uid}`, JSON.stringify(settings));
+                applySettings();
+            }
+        } catch (e) {
+            console.error("Error loading settings:", e);
+        }
+    }
+});
+
+function applySettings() {
+    if (settings.shopName) {
+        const header = document.querySelector('.receipt-header h1');
+        if (header) header.textContent = settings.shopName;
+    }
     
-    const address = document.querySelector('.receipt-header p');
-    if (address && settings.address) address.textContent = settings.address;
+    const headerDiv = document.querySelector('.receipt-header');
+    if (headerDiv) {
+        // Update Address
+        if (settings.address) {
+            let addrEl = headerDiv.querySelector('p.address');
+            if (!addrEl) {
+                // Try to find existing generic p tag
+                const genericP = headerDiv.querySelector('p:not(.phone)');
+                if (genericP) {
+                    addrEl = genericP;
+                    addrEl.classList.add('address');
+                } else {
+                    addrEl = document.createElement('p');
+                    addrEl.className = 'address';
+                    headerDiv.appendChild(addrEl);
+                }
+            }
+            addrEl.textContent = settings.address;
+        }
+
+        // Update Phone
+        if (settings.phone) {
+            let phoneEl = headerDiv.querySelector('p.phone');
+            if (!phoneEl) {
+                phoneEl = document.createElement('p');
+                phoneEl.className = 'phone';
+                headerDiv.appendChild(phoneEl);
+            }
+            phoneEl.textContent = settings.phone;
+        }
+    }
 }
 
 function renderReceipt(data) {
@@ -85,6 +140,14 @@ function renderReceipt(data) {
         c.innerHTML = `Customer: ${data.customer}`;
         document.querySelector('.receipt-body').appendChild(c);
     }
+
+    // Add Customer Phone
+    if (data.customerPhone) {
+        const p = document.createElement('p');
+        p.style.textAlign = 'center';
+        p.innerHTML = `Phone: ${data.customerPhone}`;
+        document.querySelector('.receipt-body').appendChild(p);
+    }
 }
 
 function setupButtons(data) {
@@ -96,7 +159,12 @@ function setupButtons(data) {
     // WhatsApp
     document.getElementById('whatsappBtn').addEventListener('click', () => {
         const message = generateWhatsAppMessage(data);
-        const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
+        let url = `https://wa.me/?text=${encodeURIComponent(message)}`;
+        
+        if (data.customerPhone) {
+            const cleanPhone = data.customerPhone.replace(/[^0-9]/g, ''); // Remove spaces/symbols
+            url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+        }
         window.open(url, '_blank');
     });
 }

@@ -18,7 +18,7 @@ firebase.initializeApp(firebaseConfig);
 console.log("Firebase initialized successfully");
 
 // Enable Offline Persistence
-firebase.firestore().enablePersistence()
+firebase.firestore().enablePersistence({ synchronizeTabs: true })
     .catch((err) => {
         if (err.code == 'failed-precondition') {
             console.warn('Persistence failed: Multiple tabs open');

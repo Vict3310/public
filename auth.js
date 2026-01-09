@@ -4,19 +4,38 @@ console.log("auth.js loaded");
 let isSigningUp = false;
 
 // 1. Handle Page Protection & Redirects
-auth.onAuthStateChanged(user => {
+auth.onAuthStateChanged(async user => {
     console.log("Auth state changed:", user ? "logged in" : "logged out", user?.email);
     if (isSigningUp) return; // Prevent premature redirect during signup flow
 
     const path = window.location.pathname;
     const page = path.split("/").pop();
     const isLoginPage = page === "index.html" || page === "";
+    const isPaymentPage = page === "payment.html";
 
     if (user) {
-        // If logged in and on login page, go to dashboard
-        if (isLoginPage) {
-            console.log("Redirecting to dashboard");
-            window.location.href = "dashboard.html";
+        // Check Account Status
+        try {
+            const userDoc = await db.collection('users').doc(user.uid).get();
+            const userData = userDoc.data();
+            
+            // If accountStatus is undefined, assume active (for existing admin). New users will be 'pending'.
+            const isActive = userData?.accountStatus === 'active' || userData?.accountStatus === undefined;
+
+            if (!isActive) {
+                if (!isPaymentPage) {
+                    console.log("Account pending, redirecting to payment");
+                    window.location.href = "payment.html";
+                }
+            } else {
+                // User is active
+                if (isLoginPage || isPaymentPage) {
+                    console.log("Redirecting to dashboard");
+                    window.location.href = "dashboard.html";
+                }
+            }
+        } catch (error) {
+            console.error("Error checking user status:", error);
         }
     } else {
         // If not logged in and NOT on login page, go to login
@@ -73,7 +92,8 @@ if (loginForm) {
                 return db.collection('users').doc(cred.user.uid).set({
                     email: email,
                     createdAt: new Date(),
-                    role: 'admin' // Default role
+                    role: 'admin', // Default role
+                    accountStatus: 'pending' // NEW: Require payment for new users
                 });
             })
             .then(() => {
