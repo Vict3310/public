@@ -1,4 +1,4 @@
-// Firebase Configuration - Compatible with v9 SDK
+// Firebase Configuration - Compatible with v8 SDK
 const firebaseConfig = {
   apiKey: "AIzaSyBHKSldnC_Y7iMi8TYrYua6s6V-vtWSEl8",
   authDomain: "inventoryapp-dc025.firebaseapp.com",
@@ -10,8 +10,10 @@ const firebaseConfig = {
   measurementId: "G-WKVRZTQCCW"
 };
 
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
+// Initialize Firebase only if not already initialized
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
 
 // Initialize services
 const db = firebase.firestore();
