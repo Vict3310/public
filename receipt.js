@@ -1,49 +1,43 @@
 // Receipt Module
-
-// Configuration
-const YOUR_WHATSAPP_NUMBER = "2348000000000"; // Replace with your number
+let currentUser = null;
+let settings = {};
 
 document.addEventListener('DOMContentLoaded', () => {
     const receiptData = JSON.parse(sessionStorage.getItem('receiptData'));
 
-    if (!receiptData) {
-        showNotification('No receipt data found. Redirecting to sales...', 'error');
-        setTimeout(() => {
-            window.location.href = 'sales.html';
-        }, 2000);
-        return;
+    if (receiptData) {
+        renderReceipt(receiptData);
+        setupButtons(receiptData);
+    } else {
+        loadRecentSales();
     }
-
-    renderReceipt(receiptData);
-    setupButtons(receiptData);
 });
 
-// Load Shop Settings for Receipt
-let settings = {};
-
+// Auth state listener
 auth.onAuthStateChanged(async user => {
     if (user) {
-        // 1. Try LocalStorage first (fast load)
-        const cached = localStorage.getItem(`shopSettings_${user.uid}`);
-        if (cached) {
-            settings = JSON.parse(cached);
-            applySettings();
-        }
-
-        // 2. Fetch from Firestore (ensure up-to-date)
-        try {
-            const doc = await db.collection('users').doc(user.uid).get();
-            if (doc.exists) {
-                const data = doc.data();
-                settings = { ...settings, ...data };
-                localStorage.setItem(`shopSettings_${user.uid}`, JSON.stringify(settings));
-                applySettings();
-            }
-        } catch (e) {
-            console.error("Error loading settings:", e);
+        currentUser = user;
+        await loadSettings();
+        
+        // Check if we have receipt data, if not load recent sales
+        const receiptData = JSON.parse(sessionStorage.getItem('receiptData'));
+        if (!receiptData) {
+            loadRecentSales();
         }
     }
 });
+
+async function loadSettings() {
+    try {
+        const doc = await db.collection('users').doc(currentUser.uid).get();
+        if (doc.exists) {
+            settings = doc.data();
+            applySettings();
+        }
+    } catch (error) {
+        console.error('Error loading settings:', error);
+    }
+}
 
 function applySettings() {
     if (settings.shopName) {
@@ -151,22 +145,101 @@ function renderReceipt(data) {
 }
 
 function setupButtons(data) {
-    // Print
     document.getElementById('printBtn').addEventListener('click', () => {
         window.print();
     });
 
-    // WhatsApp
     document.getElementById('whatsappBtn').addEventListener('click', () => {
         const message = generateWhatsAppMessage(data);
         let url = `https://wa.me/?text=${encodeURIComponent(message)}`;
         
         if (data.customerPhone) {
-            const cleanPhone = data.customerPhone.replace(/[^0-9]/g, ''); // Remove spaces/symbols
+            const cleanPhone = data.customerPhone.replace(/[^0-9]/g, '');
             url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
         }
         window.open(url, '_blank');
     });
+}
+
+async function loadRecentSales() {
+    try {
+        if (!currentUser) return;
+
+        const snapshot = await db.collection('users').doc(currentUser.uid)
+            .collection('sales')
+            .orderBy('createdAt', 'desc')
+            .limit(10)
+            .get();
+
+        const sales = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+
+        renderSalesList(sales);
+    } catch (error) {
+        console.error('Error loading sales:', error);
+        showNotification('Error loading sales: ' + error.message, 'error');
+    }
+}
+
+function renderSalesList(sales) {
+    const container = document.getElementById('salesList');
+    
+    if (sales.length === 0) {
+        container.innerHTML = `
+            <div class="text-center" style="padding: var(--space-8); color: var(--gray-500);">
+                <i class="fas fa-chart-bar" style="font-size: 3rem; margin-bottom: var(--space-4);"></i>
+                <p>No sales recorded yet</p>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = sales.map(sale => `
+        <div class="sale-item" onclick="generateReceiptFromSale('${sale.id}')" style="padding: var(--space-4); border: 1px solid var(--gray-200); border-radius: var(--border-radius); margin-bottom: var(--space-3); cursor: pointer;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div style="font-weight: 600;">${sale.customerName || 'Walk-in Customer'}</div>
+                    <div style="color: var(--gray-600); font-size: 0.875rem;">
+                        ${sale.items?.length || 0} item(s) • ₦${(sale.subtotal || 0).toLocaleString()}
+                    </div>
+                </div>
+                <div style="color: var(--primary); font-size: 0.75rem;">
+                    ${sale.createdAt ? new Date(sale.createdAt.toDate()).toLocaleDateString() : 'Recent'}
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function generateReceiptFromSale(saleId) {
+    // Find the sale and generate receipt
+    db.collection('users').doc(currentUser.uid)
+        .collection('sales').doc(saleId).get()
+        .then(doc => {
+            if (doc.exists) {
+                const sale = doc.data();
+                const receiptData = {
+                    transactionId: saleId,
+                    date: sale.createdAt ? sale.createdAt.toDate() : new Date(),
+                    customer: sale.customerName || 'Walk-in Customer',
+                    customerPhone: sale.customerPhone || '',
+                    items: sale.items || [],
+                    subtotal: sale.subtotal || 0,
+                    discount: 0,
+                    total: sale.subtotal || 0,
+                    paymentMethod: 'Cash'
+                };
+                
+                renderReceipt(receiptData);
+                setupButtons(receiptData);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading sale:', error);
+            showNotification('Error loading sale details', 'error');
+        });
 }
 
 function generateWhatsAppMessage(data) {

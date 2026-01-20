@@ -1,11 +1,9 @@
 // Authentication Logic
-console.log("auth.js loaded");
 
 let isSigningUp = false;
 
 // 1. Handle Page Protection & Redirects
 auth.onAuthStateChanged(async user => {
-    console.log("Auth state changed:", user ? "logged in" : "logged out", user?.email);
     if (isSigningUp) return; // Prevent premature redirect during signup flow
 
     const path = window.location.pathname;

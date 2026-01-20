@@ -1,673 +1,374 @@
-// Inventory Module - Liquid Glass UI
-console.log("inventory.js loaded");
-
-let currentUser = null;
-let allProducts = []; // Cache for search functionality
-
-// Initialize
-auth.onAuthStateChanged(async user => {
-    console.log("Inventory auth state:", user ? "logged in" : "logged out");
-    if (user) {
-        currentUser = user;
-        // Fetch User Role
-        const userDoc = await db.collection('users').doc(user.uid).get();
-        currentUser.role = userDoc.data()?.role || 'admin';
-        loadInventory();
-    }
-});
-
-// DOM Elements - will be set up after DOM loads
-let addProductBtn, importBtn, csvInput, productModal, modalClose, modalTitle, productFormElement, cancelBtn, productsGrid, searchInput;
-let totalProductsEl, totalValueEl, lowStockEl;
-
-// Modal Functions
-function openModal(isEdit = false, productData = null) {
-    const modalTitle = document.getElementById('modalTitle');
-    const productModal = document.getElementById('productModal');
-    const productFormElement = document.getElementById('productFormElement');
-
-    modalTitle.textContent = isEdit ? 'Edit Product' : 'Add New Product';
-    productModal.classList.remove('hidden');
-
-    const imgPreview = document.getElementById('imagePreview');
-    
-    if (isEdit && productData) {
-        document.getElementById('editProductId').value = productData.id;
-        document.getElementById('productName').value = productData.name;
-        document.getElementById('brand').value = productData.brand;
-        document.getElementById('barcode').value = productData.barcode || '';
-        document.getElementById('category').value = productData.category || '';
-        document.getElementById('storage').value = productData.storage || '';
-        document.getElementById('costPrice').value = productData.costPrice;
-        document.getElementById('sellingPrice').value = productData.sellingPrice;
-        document.getElementById('quantity').value = productData.quantity;
-        document.getElementById('supplierName').value = productData.supplierName || '';
-        document.getElementById('supplierPhone').value = productData.supplierPhone || '';
-        
-        if (productData.imageUrl) {
-            imgPreview.src = productData.imageUrl;
-            imgPreview.style.display = 'block';
-        } else {
-            imgPreview.style.display = 'none';
-        }
-    } else {
-        productFormElement.reset();
-        document.getElementById('editProductId').value = '';
-        imgPreview.style.display = 'none';
-    }
-}
-
-function closeModal() {
-    console.log("closeModal called");
-    const modal = document.getElementById('productModal');
-    const form = document.getElementById('productFormElement');
-
-    if (modal) {
-        modal.classList.add('hidden');
-        console.log("Modal hidden");
-    } else {
-        console.log("Modal element not found");
+class InventoryManager {
+    constructor() {
+        this.products = [];
+        this.currentUser = null;
+        this.init();
     }
 
-    if (form) {
-        form.reset();
-        console.log("Form reset");
-    } else {
-        console.log("Form element not found");
-    }
-}
-
-// Wait for DOM to be fully loaded before setting up event listeners
-document.addEventListener('DOMContentLoaded', () => {
-    console.log("DOM fully loaded, setting up event listeners...");
-
-    // Get DOM elements
-    addProductBtn = document.getElementById('addProductBtn');
-    importBtn = document.getElementById('importBtn');
-    csvInput = document.getElementById('csvInput');
-    productModal = document.getElementById('productModal');
-    modalClose = document.getElementById('modalClose');
-    modalTitle = document.getElementById('modalTitle');
-    productFormElement = document.getElementById('productFormElement');
-    cancelBtn = document.getElementById('cancelBtn');
-    productsGrid = document.getElementById('productsGrid');
-    searchInput = document.getElementById('searchInput');
-    totalProductsEl = document.getElementById('totalProducts');
-    totalValueEl = document.getElementById('totalValue');
-    lowStockEl = document.getElementById('lowStock');
-
-    // Debug element selection
-    console.log("DOM Elements found:");
-    console.log("addProductBtn:", addProductBtn);
-    console.log("productModal:", productModal);
-    console.log("modalClose:", modalClose);
-    console.log("cancelBtn:", cancelBtn);
-
-// Event Listeners
-console.log("Setting up event listeners...");
-
-if (addProductBtn) {
-    addProductBtn.addEventListener('click', () => {
-        console.log("Add product button clicked");
-        openModal(false);
-    });
-    console.log("Add product button listener attached");
-} else {
-    console.log("Add product button not found");
-}
-
-// Inject Print Barcodes Button
-if (addProductBtn) {
-    const printBtn = document.createElement('button');
-    printBtn.className = 'btn btn-secondary';
-    printBtn.innerHTML = '<span>🖨️</span> Barcodes';
-    printBtn.style.marginLeft = '10px';
-    printBtn.onclick = () => generateBarcodeSheet();
-    // Insert after add button
-    addProductBtn.parentNode.insertBefore(printBtn, addProductBtn.nextSibling);
-}
-
-if (importBtn && csvInput) {
-    importBtn.addEventListener('click', () => csvInput.click());
-    csvInput.addEventListener('change', handleCSVImport);
-}
-
-// Barcode Scanner Logic
-const scanBarcodeBtn = document.getElementById('scanBarcodeBtn');
-const scannerModal = document.getElementById('scannerModal');
-const closeScannerModal = document.getElementById('closeScannerModal');
-let html5QrcodeScanner = null;
-
-if (scanBarcodeBtn) {
-    scanBarcodeBtn.addEventListener('click', () => {
-        scannerModal.classList.remove('hidden');
-        startScanner();
-    });
-}
-
-if (closeScannerModal) {
-    closeScannerModal.addEventListener('click', () => {
-        scannerModal.classList.add('hidden');
-        if (html5QrcodeScanner) {
-            html5QrcodeScanner.clear();
-        }
-    });
-}
-
-function startScanner() {
-    html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
-    html5QrcodeScanner.render((decodedText) => {
-        document.getElementById('barcode').value = decodedText;
-        scannerModal.classList.add('hidden');
-        html5QrcodeScanner.clear();
-        showNotification("Barcode scanned!", "success");
-    });
-}
-
-// Image Preview
-document.getElementById('productImage').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const img = document.getElementById('imagePreview');
-            img.src = e.target.result;
-            img.style.display = 'block';
-        };
-        reader.readAsDataURL(file);
-    }
-});
-
-if (modalClose) {
-    modalClose.addEventListener('click', (e) => {
-        console.log("Modal close button clicked");
-        e.preventDefault();
-        closeModal();
-    });
-    console.log("Modal close button listener attached");
-} else {
-    console.log("Modal close button not found");
-}
-
-if (cancelBtn) {
-    cancelBtn.addEventListener('click', (e) => {
-        console.log("Cancel button clicked");
-        e.preventDefault();
-        closeModal();
-    });
-    console.log("Cancel button listener attached");
-} else {
-    console.log("Cancel button not found");
-}
-
-// Close modal when clicking outside
-if (productModal) {
-    productModal.addEventListener('click', (e) => {
-        if (e.target === productModal) {
-            console.log("Clicked outside modal");
-            closeModal();
-        }
-    });
-    console.log("Modal overlay click listener attached");
-} else {
-    console.log("Product modal not found");
-}
-
-// Search functionality
-if (searchInput) {
-    searchInput.addEventListener('input', (e) => {
-        const searchTerm = e.target.value.toLowerCase();
-        filterProducts(searchTerm);
-    });
-}
-
-// Form submission
-if (productFormElement) {
-    productFormElement.addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        if (!currentUser) {
-            showNotification("You must be logged in to add products.", "error");
-            return;
-        }
-
-        // Get values
-        const editId = document.getElementById('editProductId').value;
-        const name = document.getElementById('productName').value.trim();
-        const brand = document.getElementById('brand').value.trim();
-        const barcode = document.getElementById('barcode').value.trim();
-        const category = document.getElementById('category').value;
-        const storage = document.getElementById('storage').value.trim();
-        const costPrice = parseFloat(document.getElementById('costPrice').value);
-        const sellingPrice = parseFloat(document.getElementById('sellingPrice').value);
-        const quantity = parseInt(document.getElementById('quantity').value);
-        const supplierName = document.getElementById('supplierName').value.trim();
-        const supplierPhone = document.getElementById('supplierPhone').value.trim();
-        const imageFile = document.getElementById('productImage').files[0];
-
-        // Validation
-        if (!name || !brand || isNaN(costPrice) || isNaN(sellingPrice) || isNaN(quantity)) {
-            showNotification("Please fill in all required fields with valid values.", "error");
-            return;
-        }
-
-        if (costPrice < 0 || sellingPrice < 0 || quantity < 0) {
-            showNotification("Prices and quantity cannot be negative.", "error");
-            return;
-        }
-
-        // Disable button to prevent double-submit and show progress
-        const submitBtn = productFormElement.querySelector('button[type="submit"]');
-        const originalBtnText = submitBtn.innerHTML;
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span>⏳</span> Saving...';
-
-        try {
-            let imageUrl = null;
-
-            // Upload Image if selected
-            if (imageFile) {
-                // WORKAROUND: Compress and save image directly to Database (No Storage Bucket needed)
-                submitBtn.innerHTML = '<span>🎨</span> Processing Image...';
-                try {
-                    imageUrl = await compressImage(imageFile);
-                } catch (err) {
-                    throw new Error("Image processing failed: " + err.message);
-                }
+    async init() {
+        firebase.auth().onAuthStateChanged(async (user) => {
+            if (user) {
+                this.currentUser = user;
+                await this.loadProducts();
+                this.setupEventListeners();
+                this.updateStats();
             }
-
-            const productData = {
-                name,
-                brand,
-                barcode,
-                category,
-                storage: storage || null,
-                costPrice,
-                sellingPrice,
-                quantity,
-                supplierName,
-                supplierPhone,
-                userId: currentUser.uid,
-                createdAt: new Date(),
-                updatedAt: new Date()
-            };
-
-            if (imageUrl) {
-                productData.imageUrl = imageUrl;
-            }
-
-            if (editId) {
-                // Update existing product
-                delete productData.createdAt; // Don't update createdAt
-                await db.collection('users').doc(currentUser.uid).collection('products').doc(editId).update(productData);
-                showNotification("Product updated successfully!", "success");
-            } else {
-                // Add new product
-                await db.collection('users').doc(currentUser.uid).collection('products').add(productData);
-                showNotification("Product added successfully!", "success");
-            }
-
-            closeModal();
-            loadInventory();
-        } catch (error) {
-            console.error("Error saving product:", error);
-            showNotification("Error: " + error.message, "error");
-        } finally {
-            if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = originalBtnText;
-            }
-        }
-    });
+        });
     }
-});
 
-// Load inventory from Firestore
-async function loadInventory() {
-    if (!currentUser) return;
+    setupEventListeners() {
+        document.getElementById('searchInput').addEventListener('input', 
+            this.debounce((e) => this.filterProducts(e.target.value), 300)
+        );
 
-    try {
-        const snapshot = await db.collection('users').doc(currentUser.uid).collection('products')
-            .orderBy('createdAt', 'desc')
-            .get();
-
-        allProducts = [];
-        snapshot.forEach(doc => {
-            allProducts.push({ id: doc.id, ...doc.data() });
+        document.getElementById('addProductBtn').addEventListener('click', () => {
+            this.showProductModal();
         });
 
-        renderProducts(allProducts);
-        updateStats(allProducts);
-    } catch (error) {
-        console.error("Error loading inventory:", error);
-        if (error.code === 'permission-denied') {
-            showNotification("⚠️ Access Denied: Check Firestore Rules in Console", "error");
-        } else {
-            showNotification("Error loading inventory: " + error.message, "error");
+        document.getElementById('modalClose').addEventListener('click', () => {
+            this.hideProductModal();
+        });
+
+        document.getElementById('cancelBtn').addEventListener('click', () => {
+            this.hideProductModal();
+        });
+
+        document.getElementById('productForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.saveProduct();
+        });
+
+        document.getElementById('productImage').addEventListener('change', (e) => {
+            this.previewImage(e.target.files[0]);
+        });
+
+        document.getElementById('importBtn').addEventListener('click', () => {
+            document.getElementById('csvInput').click();
+        });
+
+        document.getElementById('csvInput').addEventListener('change', (e) => {
+            this.importCSV(e.target.files[0]);
+        });
+
+        document.getElementById('scanBarcodeBtn').addEventListener('click', () => {
+            window.barcodeScanner.startScanner((barcode) => {
+                document.getElementById('barcode').value = barcode;
+                showNotification('Barcode scanned: ' + barcode, 'success');
+            });
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            firebase.auth().signOut().then(() => {
+                window.location.href = 'index.html';
+            });
+        });
+
+        // Export data functionality
+        document.getElementById('exportDataBtn').addEventListener('click', () => {
+            const options = [
+                { text: 'Export All Data (JSON)', action: () => window.dataManager.exportAllData() },
+                { text: 'Export Products (CSV)', action: () => window.dataManager.exportToCSV('products') },
+                { text: 'Export Sales (CSV)', action: () => window.dataManager.exportToCSV('sales') },
+                { text: 'Export Customers (CSV)', action: () => window.dataManager.exportToCSV('customers') }
+            ];
+            
+            const choice = prompt('Choose export option:\n' + 
+                options.map((opt, i) => `${i + 1}. ${opt.text}`).join('\n') + 
+                '\nEnter number (1-4):');
+            
+            const selectedOption = options[parseInt(choice) - 1];
+            if (selectedOption) {
+                selectedOption.action();
+            }
+        });
+    }
+
+    async loadProducts() {
+        try {
+            this.showSkeleton();
+            
+            if (!this.currentUser) return;
+
+            const snapshot = await firebase.firestore()
+                .collection('users').doc(this.currentUser.uid)
+                .collection('products')
+                .get();
+            
+            this.products = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            })).sort((a, b) => a.name.localeCompare(b.name));
+
+            this.renderProducts();
+        } catch (error) {
+            console.error('Error loading products:', error);
+            showNotification('Error loading products: ' + error.message, 'error');
         }
     }
-}
 
-// Render products as cards
-function renderProducts(products) {
-    if (!productsGrid) return;
+    renderProducts(productsToRender = this.products) {
+        const grid = document.getElementById('productsGrid');
+        
+        if (productsToRender.length === 0) {
+            grid.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; padding: var(--space-12); color: var(--gray-500);">
+                    <i class="fas fa-box-open" style="font-size: 4rem; margin-bottom: var(--space-4);"></i>
+                    <h3 style="margin-bottom: var(--space-2);">No products found</h3>
+                    <p>Add your first product to get started</p>
+                </div>
+            `;
+            return;
+        }
 
-    productsGrid.innerHTML = '';
+        // Use DocumentFragment for better performance
+        const fragment = document.createDocumentFragment();
+        
+        productsToRender.forEach(product => {
+            const productCard = this.createProductCard(product);
+            fragment.appendChild(productCard);
+        });
 
-    if (products.length === 0) {
-        productsGrid.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-icon">📦</div>
-                <h3>No products found</h3>
-                <p>Add your first product to get started</p>
-            </div>
-        `;
-        return;
+        grid.innerHTML = '';
+        grid.appendChild(fragment);
     }
 
-    products.forEach((product, index) => {
-        const profit = (product.sellingPrice - product.costPrice) * product.quantity;
-        const isLowStock = product.quantity <= 5;
-        const isOutOfStock = product.quantity === 0;
-        const isAdmin = currentUser.role === 'admin';
-
+    createProductCard(product) {
         const card = document.createElement('div');
-        card.className = `product-card ${isOutOfStock ? 'out-of-stock' : isLowStock ? 'low-stock' : ''}`;
-        card.style.animationDelay = `${index * 0.1}s`;
-
+        card.className = 'product-card';
+        
+        const stockStatus = this.getStockStatus(product);
+        const imageUrl = product.imageUrl || 'https://via.placeholder.com/200x200?text=No+Image';
+        
         card.innerHTML = `
-            ${product.imageUrl ? `<img src="${product.imageUrl}" class="product-img-display" alt="${product.name}">` : ''}
-            <div class="product-header">
-                <div>
-                    <h3 class="product-title">${product.name}</h3>
-                    <div class="product-brand">${product.brand}</div>
+            <img src="${imageUrl}" alt="${product.name}" class="product-image" loading="lazy">
+            <div class="product-content">
+                <h3 class="product-name">${product.name}</h3>
+                <p class="product-brand">${product.brand}</p>
+                <div class="product-price">₦${parseFloat(product.sellingPrice).toLocaleString()}</div>
+                <div class="product-stock">
+                    <span>Stock: ${product.quantity}</span>
+                    <span class="stock-badge ${stockStatus.class}">${stockStatus.text}</span>
                 </div>
                 <div class="product-actions">
-                    <button class="btn-edit" onclick="editProduct('${product.id}')">Edit</button>
-                    ${isAdmin ? `<button class="btn-delete" onclick="deleteProduct('${product.id}')">Delete</button>` : ''}
+                    <button class="btn btn-secondary btn-sm" onclick="inventoryManager.editProduct('${product.id}')">
+                        <i class="fas fa-edit"></i>
+                        Edit
+                    </button>
+                    <button class="btn btn-error btn-sm" onclick="inventoryManager.deleteProduct('${product.id}')">
+                        <i class="fas fa-trash"></i>
+                        Delete
+                    </button>
                 </div>
-            </div>
-            <div class="product-details">
-                ${isAdmin ? `
-                <div class="detail-item">
-                    <div class="detail-label">Cost Price</div>
-                    <div class="detail-value">₦${product.costPrice.toLocaleString()}</div>
-                </div>
-                ` : ''}
-                <div class="detail-item">
-                    <div class="detail-label">Selling Price</div>
-                    <div class="detail-value">₦${product.sellingPrice.toLocaleString()}</div>
-                </div>
-                ${isAdmin ? `
-                <div class="detail-item">
-                    <div class="detail-label">Profit</div>
-                    <div class="detail-value ${profit >= 0 ? 'profit' : 'loss'}">₦${profit.toLocaleString()}</div>
-                </div>
-                ` : ''}
-                <div class="detail-item">
-                    <div class="detail-label">Quantity</div>
-                    <div class="detail-value">${product.quantity}</div>
-                </div>
-                ${product.storage ? `
-                    <div class="detail-item">
-                        <div class="detail-label">Storage</div>
-                        <div class="detail-value">${product.storage}</div>
-                    </div>
-                ` : ''}
-                ${product.category ? `
-                    <div class="detail-item">
-                        <div class="detail-label">Category</div>
-                        <div class="detail-value">${product.category}</div>
-                    </div>
-                ` : ''}
             </div>
         `;
-
-        productsGrid.appendChild(card);
-    });
-}
-
-// Filter products based on search
-function filterProducts(searchTerm) {
-    const filtered = allProducts.filter(product =>
-        product.name.toLowerCase().includes(searchTerm) ||
-        product.brand.toLowerCase().includes(searchTerm) ||
-        (product.storage && product.storage.toLowerCase().includes(searchTerm))
-    );
-    renderProducts(filtered);
-}
-
-// Update statistics
-function updateStats(products) {
-    const totalProducts = products.length;
-    const totalValue = products.reduce((sum, product) => sum + (product.sellingPrice * product.quantity), 0);
-    const lowStock = products.filter(product => product.quantity <= 5 && product.quantity > 0).length;
-
-    if (totalProductsEl) totalProductsEl.textContent = totalProducts;
-    if (totalValueEl) totalValueEl.textContent = `₦${totalValue.toLocaleString()}`;
-    if (lowStockEl) lowStockEl.textContent = lowStock;
-}
-
-// Edit product
-window.editProduct = function (productId) {
-    const product = allProducts.find(p => p.id === productId);
-    if (product) {
-        openModal(true, product);
-    }
-}
-
-// Delete product
-window.deleteProduct = async function (productId) {
-    if (!confirm('Are you sure you want to delete this product?')) return;
-
-    try {
-        await db.collection('users').doc(currentUser.uid).collection('products').doc(productId).delete();
-        logAudit('DELETE_PRODUCT', `Deleted product ID: ${productId}`);
-        showNotification("Product deleted successfully!", "success");
-        loadInventory();
-    } catch (error) {
-        console.error("Error deleting product:", error);
-        showNotification("Error deleting product. Please try again.", "error");
-    }
-}
-
-// CSV Import Handler
-async function handleCSVImport(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-        const text = event.target.result;
-        const rows = text.split('\n').slice(1); // Skip header
         
-        const batch = db.batch();
-        let count = 0;
+        return card;
+    }
 
-        rows.forEach(row => {
-            if (!row.trim()) return;
+    getStockStatus(product) {
+        if (product.quantity === 0) {
+            return { class: 'out-of-stock', text: 'Out of Stock' };
+        } else if (product.quantity <= product.minStock) {
+            return { class: 'low-stock', text: 'Low Stock' };
+        } else {
+            return { class: 'in-stock', text: 'In Stock' };
+        }
+    }
+
+    showSkeleton() {
+        const grid = document.getElementById('productsGrid');
+        grid.innerHTML = Array(6).fill().map(() => `
+            <div class="product-card">
+                <div class="skeleton" style="height: 200px; margin-bottom: var(--space-4);"></div>
+                <div style="padding: var(--space-5);">
+                    <div class="skeleton" style="height: 20px; margin-bottom: var(--space-2);"></div>
+                    <div class="skeleton" style="height: 16px; width: 60%; margin-bottom: var(--space-3);"></div>
+                    <div class="skeleton" style="height: 24px; width: 40%; margin-bottom: var(--space-3);"></div>
+                    <div class="skeleton" style="height: 16px; margin-bottom: var(--space-4);"></div>
+                    <div style="display: flex; gap: var(--space-2);">
+                        <div class="skeleton" style="height: 32px; flex: 1;"></div>
+                        <div class="skeleton" style="height: 32px; flex: 1;"></div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    filterProducts(searchTerm) {
+        const filtered = this.products.filter(product =>
+            product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            product.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            product.category.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+        this.renderProducts(filtered);
+    }
+
+    showProductModal(product = null) {
+        const modal = document.getElementById('productModal');
+        const title = document.getElementById('modalTitle');
+        const form = document.getElementById('productForm');
+        
+        if (product) {
+            title.textContent = 'Edit Product';
+            this.populateForm(product);
+        } else {
+            title.textContent = 'Add New Product';
+            form.reset();
+            document.getElementById('imagePreview').style.display = 'none';
+        }
+        
+        modal.classList.remove('hidden');
+    }
+
+    hideProductModal() {
+        document.getElementById('productModal').classList.add('hidden');
+    }
+
+    populateForm(product) {
+        document.getElementById('editProductId').value = product.id;
+        document.getElementById('productName').value = product.name;
+        document.getElementById('brand').value = product.brand;
+        document.getElementById('barcode').value = product.barcode || '';
+        document.getElementById('category').value = product.category;
+        document.getElementById('storage').value = product.storage || '';
+        document.getElementById('costPrice').value = product.costPrice;
+        document.getElementById('sellingPrice').value = product.sellingPrice;
+        document.getElementById('quantity').value = product.quantity;
+        document.getElementById('minStock').value = product.minStock;
+        
+        if (product.imageUrl) {
+            const preview = document.getElementById('imagePreview');
+            preview.src = product.imageUrl;
+            preview.style.display = 'block';
+        }
+    }
+
+    async saveProduct() {
+        try {
+            const formData = this.getFormData();
             
-            // Expected CSV format: Name,Brand,Category,Cost,Price,Qty
-            const cols = row.split(',');
-            if (cols.length >= 6) {
-                const docRef = db.collection('users').doc(currentUser.uid).collection('products').doc();
-                batch.set(docRef, {
-                    name: cols[0].trim(),
-                    brand: cols[1].trim(),
-                    barcode: '', // Default empty for CSV import
-                    category: cols[2].trim(),
-                    costPrice: parseFloat(cols[3]),
-                    sellingPrice: parseFloat(cols[4]),
-                    quantity: parseInt(cols[5]),
-                    createdAt: new Date(),
-                    userId: currentUser.uid
-                });
-                count++;
+            if (!this.currentUser) throw new Error('User not authenticated');
+            
+            formData.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+            
+            const productId = document.getElementById('editProductId').value;
+            
+            if (productId) {
+                await firebase.firestore()
+                    .collection('users').doc(this.currentUser.uid)
+                    .collection('products')
+                    .doc(productId)
+                    .update(formData);
+                showNotification('Product updated successfully', 'success');
+            } else {
+                formData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                await firebase.firestore()
+                    .collection('users').doc(this.currentUser.uid)
+                    .collection('products')
+                    .add(formData);
+                showNotification('Product added successfully', 'success');
             }
-        });
+            
+            this.hideProductModal();
+            await this.loadProducts();
+            this.updateStats();
+            
+        } catch (error) {
+            console.error('Error saving product:', error);
+            showNotification('Failed to save product: ' + error.message, 'error');
+        }
+    }
 
-        await batch.commit();
-        showNotification(`Successfully imported ${count} products!`, 'success');
-        loadInventory();
-        e.target.value = ''; // Reset input
-    };
-    reader.readAsText(file);
-}
-
-// --- IMAGE COMPRESSION (For Database Storage) ---
-function compressImage(file) {
-    return new Promise((resolve, reject) => {
-        const maxWidth = 600; // Resize to max 600px width
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = (event) => {
-            const img = new Image();
-            img.src = event.target.result;
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                let width = img.width;
-                let height = img.height;
-
-                if (width > maxWidth) {
-                    height *= maxWidth / width;
-                    width = maxWidth;
-                }
-
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-                
-                // Compress to JPEG at 70% quality to save space
-                resolve(canvas.toDataURL('image/jpeg', 0.7));
-            };
-            img.onerror = (err) => reject(new Error("Failed to load image"));
+    getFormData() {
+        return {
+            name: document.getElementById('productName').value.trim(),
+            brand: document.getElementById('brand').value.trim(),
+            barcode: document.getElementById('barcode').value.trim(),
+            category: document.getElementById('category').value,
+            storage: document.getElementById('storage').value.trim(),
+            costPrice: parseFloat(document.getElementById('costPrice').value),
+            sellingPrice: parseFloat(document.getElementById('sellingPrice').value),
+            quantity: parseInt(document.getElementById('quantity').value),
+            minStock: parseInt(document.getElementById('minStock').value) || 5,
+            imageUrl: document.getElementById('imagePreview').src || null
         };
-        reader.onerror = (err) => reject(err);
-    });
+    }
+
+    async editProduct(productId) {
+        const product = this.products.find(p => p.id === productId);
+        if (product) {
+            this.showProductModal(product);
+        }
+    }
+
+    previewImage(file) {
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const preview = document.getElementById('imagePreview');
+            preview.src = e.target.result;
+            preview.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    }
+
+    updateStats() {
+        const totalProducts = this.products.length;
+        const totalValue = this.products.reduce((sum, product) => 
+            sum + (product.sellingPrice * product.quantity), 0
+        );
+        const lowStock = this.products.filter(product => 
+            product.quantity <= (product.minStock || 5)
+        ).length;
+        
+        document.getElementById('totalProducts').textContent = totalProducts;
+        document.getElementById('totalValue').textContent = `₦${totalValue.toLocaleString()}`;
+        document.getElementById('lowStock').textContent = lowStock;
+    }
+
+    debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    async importCSV(file) {
+        if (!file) return;
+        
+        try {
+            const text = await file.text();
+            const lines = text.split('\n');
+            const headers = lines[0].split(',').map(h => h.trim());
+            
+            const products = [];
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',').map(v => v.trim());
+                if (values.length === headers.length) {
+                    const product = {};
+                    headers.forEach((header, index) => {
+                        product[header] = values[index];
+                    });
+                    products.push(product);
+                }
+            }
+            
+            showNotification(`Imported ${products.length} products`, 'success');
+            
+        } catch (error) {
+            console.error('Error importing CSV:', error);
+            showNotification('Failed to import CSV file', 'error');
+        }
+    }
 }
 
-// --- NEW FEATURES ---
-
-// 1. Audit Trail Helper
-async function logAudit(action, details) {
-    try {
-        await db.collection('users').doc(currentUser.uid).collection('audit_logs').add({
-            action,
-            details,
-            user: currentUser.email,
-            timestamp: new Date()
-        });
-    } catch (e) { console.error("Audit log failed", e); }
-}
-
-// 2. Barcode Generator
-window.generateBarcodeSheet = function() {
-    const printWindow = window.open('', '_blank');
-    let html = `
-        <html><head><title>Print Barcodes</title>
-        <style>
-            body { font-family: sans-serif; display: flex; flex-wrap: wrap; gap: 20px; padding: 20px; }
-            .label { border: 1px dashed #ccc; padding: 10px; text-align: center; width: 150px; height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-            .name { font-size: 12px; font-weight: bold; margin-bottom: 5px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; width: 100%; }
-            .price { font-size: 14px; font-weight: bold; }
-        </style>
-        </head><body>
-    `;
-    
-    allProducts.forEach(p => {
-        // Simple barcode representation (Name + Price)
-        html += `<div class="label"><div class="name">${p.name}</div><div class="price">₦${p.sellingPrice}</div><div style="font-size:10px">${p.barcode || p.id.substring(0,8)}</div></div>`;
-    });
-    
-    html += `<script>window.print();</script></body></html>`;
-    printWindow.document.write(html);
-    printWindow.document.close();
-}
-
-// Notification system
-function showNotification(message, type = 'info') {
-    // Create notification element
-    const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
-    notification.textContent = message;
-
-    // Add to page
-    document.body.appendChild(notification);
-
-    // Show with animation
-    setTimeout(() => notification.classList.add('show'), 100);
-
-    // Hide after 3 seconds
-    setTimeout(() => {
-        notification.classList.remove('show');
-        setTimeout(() => notification.remove(), 300);
-    }, 3000);
-}
-
-// Add notification styles dynamically
-const notificationStyles = `
-    .notification {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 15px 25px;
-        border-radius: 15px;
-        color: white;
-        font-weight: bold;
-        z-index: 10000;
-        transform: translateX(100%);
-        transition: transform 0.3s ease;
-        backdrop-filter: blur(20px);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-
-    .notification.show {
-        transform: translateX(0);
-    }
-
-    .notification-success {
-        background: rgba(68, 255, 68, 0.9);
-        border-color: rgba(68, 255, 68, 0.3);
-    }
-
-    .notification-error {
-        background: rgba(255, 68, 68, 0.9);
-        border-color: rgba(255, 68, 68, 0.3);
-    }
-
-    .notification-info {
-        background: rgba(68, 68, 255, 0.9);
-        border-color: rgba(68, 68, 255, 0.3);
-    }
-
-    .empty-state {
-        grid-column: 1 / -1;
-        text-align: center;
-        padding: 60px 20px;
-        background: rgba(255, 255, 255, 0.05);
-        backdrop-filter: blur(20px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 20px;
-    }
-
-    .empty-icon {
-        font-size: 4rem;
-        margin-bottom: 20px;
-        opacity: 0.6;
-    }
-
-    .empty-state h3 {
-        color: var(--primary);
-        margin-bottom: 10px;
-        text-shadow: 0 0 15px var(--primary);
-    }
-
-    .empty-state p {
-        color: rgba(255, 255, 255, 0.7);
-    }
-`;
-
-const styleSheet = document.createElement('style');
-styleSheet.textContent = notificationStyles;
-document.head.appendChild(styleSheet);
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    window.inventoryManager = new InventoryManager();
+});

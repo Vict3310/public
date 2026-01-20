@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Dashboard - Inventory Matrix</title>
+    <link rel="stylesheet" href="futuristic.css">
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+</head>
+<body>
+    <!-- Neural Sidebar -->
+    <nav class="sidebar-2030">
+        <div style="padding: var(--space-8) var(--space-6);">
+            <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-8);">
+                <div style="width: 50px; height: 50px; background: var(--bg-neural); border: 2px solid var(--primary); border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; animation: quantumSpin 10s linear infinite;">
+                    <span style="font-size: 1.5rem;">🧠</span>
+                </div>
+                <div>
+                    <div class="text-gradient" style="font-size: 1.25rem; font-weight: 700;">Neural Matrix</div>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary);">Inventory System</div>
+                </div>
+            </div>
+        </div>
+        
+        <div style="padding: 0 var(--space-4);">
+            <div class="nav-item-2030">
+                <a href="dashboard.html" class="nav-link-2030 active">
+                    <span style="font-size: 1.25rem;">📊</span>
+                    <span>Neural Dashboard</span>
+                </a>
+            </div>
+            <div class="nav-item-2030">
+                <a href="inventory.html" class="nav-link-2030">
+                    <span style="font-size: 1.25rem;">📦</span>
+                    <span>Inventory Matrix</span>
+                </a>
+            </div>
+            <div class="nav-item-2030">
+                <a href="sales.html" class="nav-link-2030">
+                    <span style="font-size: 1.25rem;">⚡</span>
+                    <span>Sales Terminal</span>
+                </a>
+            </div>
+            <div class="nav-item-2030">
+                <a href="analytics.html" class="nav-link-2030">
+                    <span style="font-size: 1.25rem;">🔮</span>
+                    <span>Quantum Analytics</span>
+                </a>
+            </div>
+            <div class="nav-item-2030">
+                <a href="suppliers.html" class="nav-link-2030">
+                    <span style="font-size: 1.25rem;">🌐</span>
+                    <span>Supply Network</span>
+                </a>
+            </div>
+        </div>
+        
+        <div style="margin-top: auto; padding: var(--space-6);">
+            <button id="logoutBtn" class="btn-holo" style="width: 100%; font-size: 0.875rem;">
+                <span>🚀</span>
+                Disconnect
+            </button>
+        </div>
+    </nav>
+    
+    <!-- Main Neural Interface -->
+    <main class="main-content-2030">
+        <div class="page-header-2030">
+            <h1 class="page-title-2030">Neural Dashboard</h1>
+            <p class="page-subtitle-2030">Real-time business intelligence matrix</p>
+        </div>
+
+        <!-- Quantum Controls -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-8); flex-wrap: wrap; gap: var(--space-4);">
+            <div style="display: flex; align-items: center; gap: var(--space-4);">
+                <div class="form-neural" style="width: auto;">
+                    <input type="date" id="startDate" style="width: 150px; background: var(--bg-glass); border: 1px solid var(--border-neural);">
+                </div>
+                <span style="color: var(--text-secondary);">to</span>
+                <div class="form-neural" style="width: auto;">
+                    <input type="date" id="endDate" style="width: 150px; background: var(--bg-glass); border: 1px solid var(--border-neural);">
+                </div>
+                <button id="filterBtn" class="btn-holo" style="font-size: 0.875rem;">Analyze</button>
+            </div>
+            <div style="display: flex; gap: var(--space-3);">
+                <button id="exportBtn" class="neural-card" style="padding: var(--space-3) var(--space-4); cursor: pointer; border: 1px solid var(--success);">
+                    <span style="margin-right: var(--space-2);">📡</span>Export Data
+                </button>
+                <button id="addExpenseBtn" class="neural-card" style="padding: var(--space-3) var(--space-4); cursor: pointer; border: 1px solid var(--danger);">
+                    <span style="margin-right: var(--space-2);">⚠️</span>Log Expense
+                </button>
+            </div>
+        </div>
+
+        <!-- Neural Metrics Grid -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--space-6); margin-bottom: var(--space-8);">
+            <div class="dashboard-card-2030">
+                <div style="display: flex; justify-content: between; align-items: start; margin-bottom: var(--space-4);">
+                    <div>
+                        <div style="font-size: 0.875rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: var(--space-2);">Total Products</div>
+                        <div class="card-value-2030" id="totalProducts">0</div>
+                    </div>
+                    <div style="font-size: 2.5rem; opacity: 0.3;">📦</div>
+                </div>
+                <div style="font-size: 0.75rem; color: var(--success);">↗ +12% from last cycle</div>
+            </div>
+            
+            <div class="dashboard-card-2030">
+                <div style="display: flex; justify-content: between; align-items: start; margin-bottom: var(--space-4);">
+                    <div>
+                        <div style="font-size: 0.875rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: var(--space-2);">Matrix Value</div>
+                        <div class="card-value-2030" id="totalStockValue">₦0</div>
+                    </div>
+                    <div style="font-size: 2.5rem; opacity: 0.3;">💎</div>
+                </div>
+                <div style="font-size: 0.75rem; color: var(--success);">↗ +8% quantum growth</div>
+            </div>
+            
+            <div class="dashboard-card-2030">
+                <div style="display: flex; justify-content: between; align-items: start; margin-bottom: var(--space-4);">
+                    <div>
+                        <div style="font-size: 0.875rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: var(--space-2);">Neural Sales</div>
+                        <div class="card-value-2030" id="todaySales">₦0</div>
+                    </div>
+                    <div style="font-size: 2.5rem; opacity: 0.3;">⚡</div>
+                </div>
+                <div style="font-size: 0.75rem; color: var(--primary);">Real-time processing</div>
+            </div>
+            
+            <div class="dashboard-card-2030">
+                <div style="display: flex; justify-content: between; align-items: start; margin-bottom: var(--space-4);">
+                    <div>
+                        <div style="font-size: 0.875rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: var(--space-2);">Profit Matrix</div>
+                        <div class="card-value-2030" id="todayProfit">₦0</div>
+                    </div>
+                    <div style="font-size: 2.5rem; opacity: 0.3;">🚀</div>
+                </div>
+                <div style="font-size: 0.75rem; color: var(--success);">↗ Optimized algorithms</div>
+            </div>
+        </div>
+        
+        <!-- Neural Alerts -->
+        <div class="neural-card" style="margin-bottom: var(--space-8);">
+            <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: var(--space-6); color: var(--text-primary); display: flex; align-items: center; gap: var(--space-3);">
+                <span style="font-size: 1.25rem;">🔔</span>
+                Neural Alerts
+            </h2>
+            <div id="lowStockList" style="display: grid; gap: var(--space-3);">
+                <!-- Alerts will be populated here -->
+            </div>
+        </div>
+
+        <!-- Quantum Analytics -->
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: var(--space-8); margin-bottom: var(--space-8);">
+            <div class="neural-card">
+                <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: var(--space-6); color: var(--text-primary); display: flex; align-items: center; gap: var(--space-3);">
+                    <span style="font-size: 1rem;">📈</span>
+                    Revenue Quantum Field
+                </h3>
+                <div id="salesChart" style="height: 350px;"></div>
+            </div>
+            <div class="neural-card">
+                <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: var(--space-6); color: var(--text-primary); display: flex; align-items: center; gap: var(--space-3);">
+                    <span style="font-size: 1rem;">🎯</span>
+                    Profit Neural Network
+                </h3>
+                <div id="profitChart" style="height: 350px;"></div>
+            </div>
+        </div>
+
+        <!-- Advanced Metrics -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: var(--space-6);">
+            <div class="neural-card" style="text-align: center;">
+                <div style="font-size: 2rem; margin-bottom: var(--space-4); animation: quantumSpin 6s linear infinite;">🌟</div>
+                <div style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: var(--space-2);">AI Efficiency Score</div>
+                <div style="font-size: 2rem; font-weight: 700; color: var(--success);">94.7%</div>
+            </div>
+            <div class="neural-card" style="text-align: center;">
+                <div style="font-size: 2rem; margin-bottom: var(--space-4); animation: neuralPulse 4s ease-in-out infinite;">🔮</div>
+                <div style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: var(--space-2);">Prediction Accuracy</div>
+                <div style="font-size: 2rem; font-weight: 700; color: var(--primary);">98.2%</div>
+            </div>
+            <div class="neural-card" style="text-align: center;">
+                <div style="font-size: 2rem; margin-bottom: var(--space-4); animation: hologramFlicker 3s ease-in-out infinite;">⚡</div>
+                <div style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: var(--space-2);">Neural Processing</div>
+                <div style="font-size: 2rem; font-weight: 700; color: var(--accent);">2.4ms</div>
+            </div>
+            <div class="neural-card" style="text-align: center;">
+                <div style="font-size: 2rem; margin-bottom: var(--space-4); animation: dataFlow 5s linear infinite;">🌐</div>
+                <div style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: var(--space-2);">Network Status</div>
+                <div style="font-size: 2rem; font-weight: 700; color: var(--success);">ONLINE</div>
+            </div>
+        </div>
+
+        <!-- Neural Expense Modal -->
+        <div id="expenseModal" class="hidden" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(10, 10, 15, 0.9); display: flex; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(10px);">
+            <div class="neural-card" style="width: 100%; max-width: 500px; margin: var(--space-4);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-6);">
+                    <h2 style="font-size: 1.5rem; font-weight: 600; color: var(--text-primary);">Log Neural Expense</h2>
+                    <button type="button" id="closeExpenseModal" style="background: none; border: none; font-size: 1.5rem; color: var(--text-secondary); cursor: pointer;">&times;</button>
+                </div>
+                <form id="expenseForm" style="display: flex; flex-direction: column; gap: var(--space-6);">
+                    <div class="form-neural">
+                        <input type="text" id="expenseDesc" placeholder=" " required>
+                        <label for="expenseDesc">Expense Description</label>
+                    </div>
+                    <div class="form-neural">
+                        <input type="number" id="expenseAmount" placeholder=" " required>
+                        <label for="expenseAmount">Amount (₦)</label>
+                    </div>
+                    <div class="form-neural">
+                        <select id="expenseCategory" style="background: var(--bg-glass); border: 1px solid var(--border-neural); color: var(--text-primary);">
+                            <option value="Rent">Facility Rent</option>
+                            <option value="Utilities">Power Grid</option>
+                            <option value="Salaries">Human Resources</option>
+                            <option value="Transportation">Transport Network</option>
+                            <option value="Maintenance">System Maintenance</option>
+                            <option value="Other">Other Expenses</option>
+                        </select>
+                    </div>
+                    <div class="form-neural">
+                        <input type="date" id="expenseDate" required>
+                    </div>
+                    <div style="display: flex; gap: var(--space-4); justify-content: flex-end;">
+                        <button type="button" class="neural-card" style="padding: var(--space-3) var(--space-6); cursor: pointer;" onclick="document.getElementById('expenseModal').classList.add('hidden')">Cancel</button>
+                        <button type="submit" class="btn-holo">Log Expense</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="firebase.js"></script>
+    <script src="auth.js"></script>
+    <script src="neural-dashboard.js"></script>
+</body>
+</html>

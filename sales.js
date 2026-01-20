@@ -1,364 +1,514 @@
-// Sales Module
-
-let currentUser = null;
-let products = [];
-let cart = [];
-
-// Initialize sales
-auth.onAuthStateChanged(async user => {
-    if (user) {
-        currentUser = user;
-        // Fetch User Role
-        const userDoc = await db.collection('users').doc(user.uid).get();
-        currentUser.role = userDoc.data()?.role || 'admin';
-        loadProductsForSale();
-        loadSalesHistory();
+class SalesManager {
+    constructor() {
+        this.products = [];
+        this.cart = [];
+        this.currentUser = null;
+        this.init();
     }
-});
 
-// Load products for sale dropdown
-async function loadProductsForSale() {
-    const grid = document.getElementById('salesProductGrid');
-    grid.innerHTML = '<div class="loading"></div>';
-
-    try {
-        const snapshot = await db.collection('users').doc(currentUser.uid).collection('products').get();
-        products = [];
-        grid.innerHTML = '';
-
-        snapshot.forEach(doc => {
-            const product = { id: doc.id, ...doc.data() };
-            products.push(product);
-            
-            // Create Card
-            const card = document.createElement('div');
-            card.className = `sales-product-card ${product.quantity === 0 ? 'out-of-stock' : ''}`;
-            card.onclick = () => addToCart(product.id);
-            
-            card.innerHTML = `
-                <h4>${product.name}</h4>
-                <p>${product.brand}</p>
-                <p style="color: var(--primary); font-weight: bold;">₦${product.sellingPrice}</p>
-                <p style="font-size: 0.8rem; color: ${product.quantity < 5 ? 'var(--danger)' : 'var(--text-secondary)'}">
-                    ${product.quantity} in stock
-                </p>
-            `;
-            
-            if (product.quantity > 0) {
-                grid.appendChild(card);
+    async init() {
+        firebase.auth().onAuthStateChanged(async (user) => {
+            if (user) {
+                this.currentUser = user;
+                await this.loadProducts();
+                this.setupEventListeners();
+                this.loadRecentSales();
             }
         });
+    }
 
-        // Setup Search
-        document.getElementById('salesSearchInput').addEventListener('input', (e) => {
-            const term = e.target.value.toLowerCase();
-            const cards = grid.getElementsByClassName('sales-product-card');
-            Array.from(cards).forEach(card => {
-                const text = card.innerText.toLowerCase();
-                card.style.display = text.includes(term) ? 'block' : 'none';
+    setupEventListeners() {
+        document.getElementById('productSearch').addEventListener('input', (e) => {
+            this.filterProducts(e.target.value);
+        });
+
+        document.getElementById('clearCart').addEventListener('click', () => {
+            this.clearCart();
+        });
+
+        document.getElementById('completeSale').addEventListener('click', () => {
+            this.completeSale();
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            firebase.auth().signOut().then(() => {
+                window.location.href = 'index.html';
             });
         });
 
-    } catch (error) {
-        console.error('Error loading products for sale:', error);
-        grid.innerHTML = '<p style="color:red">Error loading products</p>';
-    }
-}
+        // Payment method change listeners
+        document.querySelectorAll('input[name="paymentMethod"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                this.updateCartSummary();
+            });
+        });
 
-// Barcode Scanner Logic
-const startScanBtn = document.getElementById('startScanBtn');
-const scannerModal = document.getElementById('scannerModal');
-const closeScannerModal = document.getElementById('closeScannerModal');
-let html5QrcodeScanner = null;
-
-if (startScanBtn) {
-    startScanBtn.addEventListener('click', () => {
-        scannerModal.classList.remove('hidden');
-        startScanner();
-    });
-}
-
-if (closeScannerModal) {
-    closeScannerModal.addEventListener('click', () => {
-        scannerModal.classList.add('hidden');
-        if (html5QrcodeScanner) html5QrcodeScanner.clear();
-    });
-}
-
-function startScanner() {
-    html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
-    html5QrcodeScanner.render((decodedText) => {
-        const product = products.find(p => p.barcode === decodedText);
-        if (product) {
-            addToCart(product.id);
-            showNotification(`Added ${product.name} to cart`, "success");
-        } else {
-            showNotification("Product not found", "error");
-        }
-    });
-}
-
-function addToCart(productId) {
-    const product = products.find(p => p.id === productId);
-    if (!product || product.quantity <= 0) {
-        showNotification('Product out of stock', 'error');
-        return;
-    }
-
-    const existingItem = cart.find(item => item.id === productId);
-    
-    if (existingItem) {
-        if (existingItem.cartQty < product.quantity) {
-            existingItem.cartQty++;
-        } else {
-            showNotification('Max stock reached for this item', 'warning');
-        }
-    } else {
-        cart.push({
-            ...product,
-            cartQty: 1,
-            originalPrice: product.sellingPrice // Keep track of original price
+        // Discount change listener
+        document.getElementById('discountAmount')?.addEventListener('input', () => {
+            this.updateCartSummary();
         });
     }
 
-    renderCart();
-}
-
-function removeFromCart(index) {
-    cart.splice(index, 1);
-    renderCart();
-}
-
-function updateCartQty(index, change) {
-    const item = cart[index];
-    const newQty = item.cartQty + change;
-    
-    if (newQty > 0 && newQty <= item.quantity) {
-        item.cartQty = newQty;
-        renderCart();
-    }
-}
-
-function renderCart() {
-    const cartContainer = document.getElementById('cartItems');
-    const checkoutBtn = document.getElementById('checkoutBtn');
-    
-    if (cart.length === 0) {
-        cartContainer.innerHTML = '<div class="empty-cart-message">Cart is empty</div>';
-        checkoutBtn.disabled = true;
-        updateCartTotals();
-        return;
-    }
-
-    cartContainer.innerHTML = '';
-    cart.forEach((item, index) => {
-        const div = document.createElement('div');
-        div.className = 'cart-item';
-        div.innerHTML = `
-            <div class="cart-item-info">
-                <h4>${item.name}</h4>
-                <p>₦${item.sellingPrice.toLocaleString()} x ${item.cartQty}</p>
-            </div>
-            <div class="cart-item-actions">
-                <button class="cart-qty-btn" onclick="updateCartQty(${index}, -1)">-</button>
-                <span>${item.cartQty}</span>
-                <button class="cart-qty-btn" onclick="updateCartQty(${index}, 1)">+</button>
-                <button class="cart-remove-btn" onclick="removeFromCart(${index})">&times;</button>
-            </div>
-        `;
-        cartContainer.appendChild(div);
-    });
-
-    checkoutBtn.disabled = false;
-    updateCartTotals();
-}
-
-document.getElementById('cartDiscount').addEventListener('input', updateCartTotals);
-
-function updateCartTotals() {
-    const subtotal = cart.reduce((sum, item) => sum + (item.sellingPrice * item.cartQty), 0);
-    const discount = parseFloat(document.getElementById('cartDiscount').value) || 0;
-    const total = Math.max(0, subtotal - discount);
-
-    document.getElementById('cartSubtotal').textContent = `₦${subtotal.toLocaleString()}`;
-    document.getElementById('cartTotal').textContent = `₦${total.toLocaleString()}`;
-}
-
-// Checkout Logic
-document.getElementById('checkoutBtn').addEventListener('click', async () => {
-    if (cart.length === 0) return;
-
-    const paymentMethod = document.getElementById('paymentMethod').value;
-    const discount = parseFloat(document.getElementById('cartDiscount').value) || 0;
-    const subtotal = cart.reduce((sum, item) => sum + (item.sellingPrice * item.cartQty), 0);
-    
-    // Feature: Customer Database (Simple)
-    const customerName = prompt("Enter Customer Name (Optional):") || "Walk-in Customer";
-    const customerPhone = prompt("Enter Customer WhatsApp Number (e.g. 23480...):") || "";
-
-    // Calculate discount ratio to distribute discount across items for accurate profit tracking
-    const discountRatio = subtotal > 0 ? (subtotal - discount) / subtotal : 1;
-    const transactionId = 'TRX-' + Date.now();
-    const saleDate = new Date();
-
-    try {
-        const batch = db.batch();
-        const salesRef = db.collection('users').doc(currentUser.uid).collection('sales');
-        const productsRef = db.collection('users').doc(currentUser.uid).collection('products');
-
-        const receiptItems = [];
-
-        for (const item of cart) {
-            // Calculate effective revenue for this item after discount
-            const itemRevenue = (item.sellingPrice * item.cartQty) * discountRatio;
-            const itemProfit = itemRevenue - (item.costPrice * item.cartQty);
-
-            const saleDoc = salesRef.doc();
-            batch.set(saleDoc, {
-                transactionId: transactionId,
-                productId: item.id,
-                productName: item.name,
-                brand: item.brand,
-                quantity: item.cartQty,
-                sellingPrice: item.sellingPrice, // Unit price listed
-                costPrice: item.costPrice,
-                revenue: itemRevenue, // Actual money made after discount
-                profit: itemProfit,
-                date: saleDate,
-                paymentMethod: paymentMethod,
-                seller: currentUser.email,
-                customer: customerName,
-                customerPhone: customerPhone
-            });
-
-            const productDoc = productsRef.doc(item.id);
-            batch.update(productDoc, {
-                quantity: firebase.firestore.FieldValue.increment(-item.cartQty),
-                lastUpdated: saleDate
-            });
-
-            receiptItems.push({
-                name: item.name,
-                qty: item.cartQty,
-                price: item.sellingPrice,
-                total: item.sellingPrice * item.cartQty
-            });
-        }
-
-        await batch.commit();
-
-        // Show sale summary
-        document.getElementById('summaryText').textContent = 
-            `Sale completed! Total: ₦${(subtotal - discount).toLocaleString()}`;
-        document.getElementById('saleSummary').classList.remove('hidden');
-
-        // Store for receipt
-        const receiptData = {
-            transactionId: transactionId,
-            date: saleDate,
-            items: receiptItems,
-            subtotal: subtotal,
-            discount: discount,
-            total: subtotal - discount,
-            paymentMethod: paymentMethod,
-            customer: customerName,
-            customerPhone: customerPhone
-        };
-        sessionStorage.setItem('receiptData', JSON.stringify(receiptData));
-
-        // Reset form
-        cart = [];
-        document.getElementById('cartDiscount').value = '';
-        renderCart();
-
-        loadProductsForSale();
-        loadSalesHistory();
-
-    } catch (error) {
-        console.error('Error processing checkout:', error);
-        showNotification('Checkout failed: ' + error.message, 'error');
-    }
-});
-
-// Generate receipt
-document.getElementById('generateReceiptBtn').addEventListener('click', () => {
-    // Data is already stored in sessionStorage upon successful sale
-    window.location.href = 'receipt.html';
-});
-
-// Load sales history
-async function loadSalesHistory() {
-    const salesTableBody = document.getElementById('salesTableBody');
-    salesTableBody.innerHTML = '';
-
-    try {
-        const snapshot = await db.collection('users').doc(currentUser.uid).collection('sales')
-            .orderBy('date', 'desc')
-            .limit(50)
-            .get();
-
-        snapshot.forEach(doc => {
-            const sale = doc.data();
-            const isAdmin = currentUser.role === 'admin';
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${sale.productName}</td>
-                <td>${sale.quantity}</td>
-                <td>₦${sale.revenue.toLocaleString()}</td>
-                <td>${isAdmin ? '₦' + sale.profit.toLocaleString() : '***'}</td>
-                <td>${sale.date.toDate().toLocaleDateString()}</td>
-                <td>
-                    ${isAdmin ? `<button onclick="deleteSale('${doc.id}')" style="background: #dc3545; color: white; padding: 6px 10px; font-size: 0.8rem; border:none; border-radius:4px; cursor:pointer;">Delete</button>` : ''}
-                </td>
-            `;
-            salesTableBody.appendChild(row);
-        });
-    } catch (error) {
-        console.error('Error loading sales history:', error);
-        if (error.code === 'permission-denied') {
-            showNotification("⚠️ Access Denied: Check Firestore Rules.", "error");
-        }
-    }
-}
-
-// Delete Sale
-window.deleteSale = async (id) => {
-    if (confirm("Process Return? This will restore stock and remove the sale.")) {
+    async loadProducts() {
         try {
-            const saleRef = db.collection('users').doc(currentUser.uid).collection('sales').doc(id);
-            const saleDoc = await saleRef.get();
-            
-            if (saleDoc.exists) {
-                const sale = saleDoc.data();
-                
-                // Restore stock if productId exists
-                if (sale.productId) {
-                    const productRef = db.collection('users').doc(currentUser.uid).collection('products').doc(sale.productId);
-                    const productDoc = await productRef.get();
-                    if (productDoc.exists) {
-                        await productRef.update({
-                            quantity: firebase.firestore.FieldValue.increment(sale.quantity)
-                        });
-                    }
-                }
-                
-                // Delete the sale record
-                await saleRef.delete();
-            }
+            if (!this.currentUser) return;
 
-            // Audit Log
-            await db.collection('users').doc(currentUser.uid).collection('audit_logs').add({
-                action: 'RETURN_SALE',
-                saleId: id,
-                user: currentUser.email,
-                timestamp: new Date()
-            });
-            
-            loadSalesHistory(); // Refresh the table
-            showNotification("Return processed successfully.", "success");
+            const snapshot = await firebase.firestore()
+                .collection('users').doc(this.currentUser.uid)
+                .collection('products')
+                .where('quantity', '>', 0)
+                .get();
+
+            this.products = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+
+            this.renderProducts();
         } catch (error) {
-            console.error("Error deleting sale:", error);
-            showNotification("Error deleting sale: " + error.message, "error");
+            console.error('Error loading products:', error);
+            showNotification('Error loading products: ' + error.message, 'error');
         }
     }
-};
+
+    renderProducts(productsToRender = this.products) {
+        const container = document.getElementById('productsList');
+        
+        if (productsToRender.length === 0) {
+            container.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; padding: var(--space-8); color: var(--gray-500);">
+                    <i class="fas fa-box-open" style="font-size: 3rem; margin-bottom: var(--space-4);"></i>
+                    <p>No products available</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = productsToRender.map(product => `
+            <div class="product-card" onclick="salesManager.addToCart('${product.id}')">
+                <img src="${product.imageUrl || 'https://via.placeholder.com/200x200?text=No+Image'}" 
+                     alt="${product.name}" class="product-image" loading="lazy">
+                <div class="product-content">
+                    <h3 class="product-name">${product.name}</h3>
+                    <p class="product-brand">${product.brand}</p>
+                    <div class="product-price">₦${parseFloat(product.sellingPrice).toLocaleString()}</div>
+                    <div class="product-stock">
+                        <span>Stock: ${product.quantity}</span>
+                    </div>
+                    <button class="btn btn-primary btn-sm" style="width: 100%; margin-top: var(--space-2);">
+                        <i class="fas fa-plus"></i>
+                        Add to Cart
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    filterProducts(searchTerm) {
+        const filtered = this.products.filter(product =>
+            product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            product.brand.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+        this.renderProducts(filtered);
+    }
+
+    addToCart(productId) {
+        const product = this.products.find(p => p.id === productId);
+        if (!product) return;
+
+        const existingItem = this.cart.find(item => item.id === productId);
+        
+        if (existingItem) {
+            if (existingItem.quantity < product.quantity) {
+                existingItem.quantity++;
+            } else {
+                showNotification('Not enough stock available', 'warning');
+                return;
+            }
+        } else {
+            this.cart.push({
+                ...product,
+                quantity: 1,
+                originalQuantity: product.quantity,
+                originalPrice: product.sellingPrice,
+                useCustomPrice: false
+            });
+        }
+
+        this.renderCart();
+        this.updateCartSummary();
+    }
+
+    removeFromCart(productId) {
+        this.cart = this.cart.filter(item => item.id !== productId);
+        this.renderCart();
+        this.updateCartSummary();
+    }
+
+    updateQuantity(productId, newQuantity) {
+        const item = this.cart.find(item => item.id === productId);
+        if (!item) return;
+
+        if (newQuantity <= 0) {
+            this.removeFromCart(productId);
+            return;
+        }
+
+        if (newQuantity > item.originalQuantity) {
+            showNotification('Not enough stock available', 'warning');
+            return;
+        }
+
+        item.quantity = newQuantity;
+        this.renderCart();
+        this.updateCartSummary();
+    }
+
+    togglePriceType(productId, useCustomPrice) {
+        const item = this.cart.find(item => item.id === productId);
+        if (!item) return;
+
+        item.useCustomPrice = useCustomPrice;
+        if (!useCustomPrice) {
+            item.sellingPrice = item.originalPrice;
+        }
+        
+        this.renderCart();
+        this.updateCartSummary();
+    }
+
+    updateCustomPrice(productId, newPrice) {
+        const item = this.cart.find(item => item.id === productId);
+        if (!item) return;
+
+        if (newPrice <= 0) {
+            showNotification('Price must be greater than 0', 'warning');
+            return;
+        }
+
+        item.sellingPrice = newPrice;
+        this.updateCartSummary();
+    }
+
+    renderCart() {
+        const container = document.getElementById('cartItems');
+        const summary = document.getElementById('cartSummary');
+
+        if (this.cart.length === 0) {
+            container.innerHTML = `
+                <div class="text-center" style="padding: var(--space-8); color: var(--gray-500);">
+                    <i class="fas fa-shopping-cart" style="font-size: 3rem; margin-bottom: var(--space-4);"></i>
+                    <p>Cart is empty</p>
+                </div>
+            `;
+            summary.classList.add('hidden');
+            return;
+        }
+
+        container.innerHTML = this.cart.map(item => `
+            <div style="display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3); border: 1px solid var(--gray-200); border-radius: var(--border-radius); margin-bottom: var(--space-3);">
+                <img src="${item.imageUrl || 'https://via.placeholder.com/50x50?text=No+Image'}" 
+                     alt="${item.name}" style="width: 50px; height: 50px; object-fit: cover; border-radius: var(--border-radius);">
+                <div style="flex: 1;">
+                    <div style="font-weight: 600; font-size: 0.875rem;">${item.name}</div>
+                    <div style="color: var(--gray-600); font-size: 0.75rem;">Fixed: ₦${parseFloat(item.originalPrice).toLocaleString()}</div>
+                    <div style="margin-top: 4px;">
+                        <label style="display: flex; align-items: center; gap: 4px; font-size: 0.75rem;">
+                            <input type="radio" name="priceType_${item.id}" value="fixed" 
+                                   ${item.useCustomPrice ? '' : 'checked'} 
+                                   onchange="salesManager.togglePriceType('${item.id}', false)">
+                            Fixed Price
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 4px; font-size: 0.75rem; margin-top: 2px;">
+                            <input type="radio" name="priceType_${item.id}" value="custom" 
+                                   ${item.useCustomPrice ? 'checked' : ''} 
+                                   onchange="salesManager.togglePriceType('${item.id}', true)">
+                            Custom Price
+                        </label>
+                        ${item.useCustomPrice ? `
+                            <input type="number" value="${item.sellingPrice}" step="0.01" 
+                                   style="width: 80px; margin-top: 4px; padding: 2px 4px; border: 1px solid var(--gray-300); border-radius: 4px; font-size: 0.75rem;"
+                                   onchange="salesManager.updateCustomPrice('${item.id}', parseFloat(this.value))">
+                        ` : ''}
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: var(--space-2);">
+                    <button class="btn btn-secondary btn-sm" onclick="salesManager.updateQuantity('${item.id}', ${item.quantity - 1})">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    <input type="number" value="${item.quantity}" min="1" max="${item.originalQuantity}" 
+                           style="width: 60px; text-align: center; border: 1px solid var(--gray-300); border-radius: 4px; padding: 4px;"
+                           onchange="salesManager.updateQuantity('${item.id}', parseInt(this.value))">
+                    <button class="btn btn-secondary btn-sm" onclick="salesManager.updateQuantity('${item.id}', ${item.quantity + 1})">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                    <button class="btn btn-error btn-sm" onclick="salesManager.removeFromCart('${item.id}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+
+        summary.classList.remove('hidden');
+    }
+
+    updateCartSummary() {
+        const subtotal = this.cart.reduce((sum, item) => sum + (item.sellingPrice * item.quantity), 0);
+        const totalProfit = this.cart.reduce((sum, item) => sum + ((item.sellingPrice - item.costPrice) * item.quantity), 0);
+        const discount = parseFloat(document.getElementById('discountAmount')?.value || 0);
+        const finalTotal = subtotal - discount;
+
+        document.getElementById('subtotal').textContent = `₦${subtotal.toLocaleString()}`;
+        document.getElementById('totalProfit').textContent = `₦${totalProfit.toLocaleString()}`;
+        document.getElementById('total').textContent = `₦${finalTotal.toLocaleString()}`;
+        
+        // Update payment method styling
+        document.querySelectorAll('.payment-option').forEach(option => {
+            const radio = option.querySelector('input[type="radio"]');
+            if (radio.checked) {
+                option.style.borderColor = 'var(--primary)';
+                option.style.backgroundColor = 'rgba(37, 99, 235, 0.1)';
+            } else {
+                option.style.borderColor = 'var(--gray-200)';
+                option.style.backgroundColor = 'transparent';
+            }
+        });
+    }
+
+    clearCart() {
+        if (this.cart.length === 0) return;
+        
+        if (confirm('Are you sure you want to clear the cart?')) {
+            this.cart = [];
+            this.renderCart();
+            this.updateCartSummary();
+        }
+    }
+
+    async completeSale() {
+        if (this.cart.length === 0) {
+            showNotification('Cart is empty', 'warning');
+            return;
+        }
+
+        try {
+            if (!this.currentUser) throw new Error('User not authenticated');
+
+            const customerName = document.getElementById('customerName').value.trim();
+            const customerPhone = document.getElementById('customerPhone').value.trim();
+
+            // Save customer if name or phone provided
+            if (customerName || customerPhone) {
+                await this.saveCustomerFromSale(customerName, customerPhone);
+            }
+
+            const subtotal = this.cart.reduce((sum, item) => sum + (item.sellingPrice * item.quantity), 0);
+            const totalProfit = this.cart.reduce((sum, item) => sum + ((item.sellingPrice - item.costPrice) * item.quantity), 0);
+
+            const saleData = {
+                items: this.cart.map(item => ({
+                    productId: item.id,
+                    name: item.name,
+                    brand: item.brand,
+                    quantity: item.quantity,
+                    costPrice: item.costPrice,
+                    originalPrice: item.originalPrice,
+                    sellingPrice: item.sellingPrice,
+                    useCustomPrice: item.useCustomPrice,
+                    total: item.sellingPrice * item.quantity
+                })),
+                customerName: customerName || 'Walk-in Customer',
+                customerPhone: customerPhone || '',
+                subtotal: subtotal,
+                profit: totalProfit,
+                revenue: subtotal,
+                date: firebase.firestore.FieldValue.serverTimestamp(),
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            // Save sale
+            const saleRef = await firebase.firestore()
+                .collection('users').doc(this.currentUser.uid)
+                .collection('sales')
+                .add(saleData);
+
+            // Update product quantities
+            const batch = firebase.firestore().batch();
+            this.cart.forEach(item => {
+                const productRef = firebase.firestore()
+                    .collection('users').doc(this.currentUser.uid)
+                    .collection('products').doc(item.id);
+                batch.update(productRef, {
+                    quantity: firebase.firestore.FieldValue.increment(-item.quantity)
+                });
+            });
+            await batch.commit();
+
+            // Prepare receipt data
+            const receiptData = {
+                transactionId: saleRef.id,
+                date: new Date(),
+                customer: customerName || 'Walk-in Customer',
+                customerPhone: customerPhone,
+                items: this.cart.map(item => ({
+                    name: item.name,
+                    qty: item.quantity,
+                    price: item.sellingPrice,
+                    total: item.sellingPrice * item.quantity
+                })),
+                subtotal: subtotal,
+                discount: 0,
+                total: subtotal,
+                paymentMethod: 'Cash'
+            };
+
+            // Store receipt data for receipt page
+            sessionStorage.setItem('receiptData', JSON.stringify(receiptData));
+
+            showNotification('Sale completed successfully!', 'success');
+            
+            // Ask if user wants to generate receipt
+            if (confirm('Sale completed! Would you like to generate a receipt?')) {
+                window.location.href = 'receipt.html';
+                return;
+            }
+            
+            // Send WhatsApp receipt if customer phone provided
+            if (customerPhone) {
+                if (confirm('Send receipt via WhatsApp?')) {
+                    window.whatsappManager.sendReceiptToCustomer(receiptData, customerPhone);
+                }
+            }
+            
+            // Clear cart and refresh
+            this.cart = [];
+            this.renderCart();
+            this.updateCartSummary();
+            document.getElementById('customerName').value = '';
+            document.getElementById('customerPhone').value = '';
+            
+            await this.loadProducts();
+            this.loadRecentSales();
+
+        } catch (error) {
+            console.error('Error completing sale:', error);
+            showNotification('Failed to complete sale: ' + error.message, 'error');
+        }
+    }
+
+    async saveCustomerFromSale(name, phone) {
+        try {
+            if (!name && !phone) return;
+
+            // Check if customer already exists
+            let existingCustomer = null;
+            
+            if (phone) {
+                const phoneQuery = await firebase.firestore()
+                    .collection('users').doc(this.currentUser.uid)
+                    .collection('customers')
+                    .where('phone', '==', phone)
+                    .limit(1)
+                    .get();
+                
+                if (!phoneQuery.empty) {
+                    existingCustomer = { id: phoneQuery.docs[0].id, ...phoneQuery.docs[0].data() };
+                }
+            }
+
+            if (existingCustomer) {
+                // Update existing customer purchase count
+                await firebase.firestore()
+                    .collection('users').doc(this.currentUser.uid)
+                    .collection('customers')
+                    .doc(existingCustomer.id)
+                    .update({
+                        totalPurchases: firebase.firestore.FieldValue.increment(1),
+                        lastPurchase: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+            } else {
+                // Create new customer
+                const customerData = {
+                    name: name || 'Customer',
+                    phone: phone || '',
+                    email: '',
+                    address: '',
+                    creditLimit: 0,
+                    creditBalance: 0,
+                    loyaltyPoints: 0,
+                    totalPurchases: 1,
+                    lastPurchase: firebase.firestore.FieldValue.serverTimestamp(),
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                await firebase.firestore()
+                    .collection('users').doc(this.currentUser.uid)
+                    .collection('customers')
+                    .add(customerData);
+
+                showNotification('New customer saved automatically', 'success');
+            }
+        } catch (error) {
+            console.error('Error saving customer:', error);
+            // Don't show error to user as this is background operation
+        }
+    }
+
+    async loadRecentSales() {
+        try {
+            if (!this.currentUser) return;
+
+            const snapshot = await firebase.firestore()
+                .collection('users').doc(this.currentUser.uid)
+                .collection('sales')
+                .orderBy('createdAt', 'desc')
+                .limit(10)
+                .get();
+
+            const sales = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+
+            this.renderRecentSales(sales);
+        } catch (error) {
+            console.error('Error loading recent sales:', error);
+        }
+    }
+
+    renderRecentSales(sales) {
+        const container = document.getElementById('recentSales');
+        
+        if (sales.length === 0) {
+            container.innerHTML = `
+                <div class="text-center" style="padding: var(--space-8); color: var(--gray-500);">
+                    <i class="fas fa-chart-bar" style="font-size: 3rem; margin-bottom: var(--space-4);"></i>
+                    <p>No sales recorded yet</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = sales.map(sale => `
+            <div style="padding: var(--space-4); border: 1px solid var(--gray-200); border-radius: var(--border-radius); margin-bottom: var(--space-3);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-2);">
+                    <div style="font-weight: 600;">${sale.customerName}</div>
+                    <div style="color: var(--success); font-weight: 600;">₦${parseFloat(sale.subtotal).toLocaleString()}</div>
+                </div>
+                <div style="font-size: 0.875rem; color: var(--gray-600);">
+                    ${sale.items.length} item(s) • Profit: ₦${parseFloat(sale.totalProfit).toLocaleString()}
+                </div>
+                <div style="font-size: 0.75rem; color: var(--gray-500);">
+                    ${sale.createdAt ? new Date(sale.createdAt.toDate()).toLocaleString() : 'Just now'}
+                </div>
+            </div>
+        `).join('');
+    }
+}
+
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    window.salesManager = new SalesManager();
+});

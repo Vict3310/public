@@ -1,0 +1,22 @@
+<!-- Demo Info Card -->
+<div id="demoInfo" style="position: fixed; bottom: 20px; left: 20px; background: var(--bg-glass); backdrop-filter: blur(20px); border: 1px solid var(--border-neural); color: var(--text-primary); padding: var(--space-4); border-radius: var(--radius-lg); box-shadow: var(--glow-primary); z-index: 1000; max-width: 300px; animation: slideInLeft 0.5s ease;">
+    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: var(--space-2);">
+        <h4 style="margin: 0; color: var(--primary); font-size: 0.875rem;">🧠 Neural Demo Mode</h4>
+        <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; color: var(--text-muted); cursor: pointer;">&times;</button>
+    </div>
+    <p style="margin: 0 0 var(--space-2) 0; font-size: 0.75rem; color: var(--text-secondary);">
+        Demo credentials:<br>
+        <strong>Email:</strong> demo@neural.com<br>
+        <strong>Password:</strong> demo123
+    </p>
+    <p style="margin: 0; font-size: 0.75rem; color: var(--text-muted);">
+        Or create a new account to test signup
+    </p>
+</div>
+
+<style>
+@keyframes slideInLeft {
+    from { transform: translateX(-100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+</style>

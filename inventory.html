@@ -3,99 +3,182 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#3b82f6">
+    <link rel="manifest" href="pwa-manifest.json">
     <title>Inventory - Inventory & Sales</title>
-    <link rel="stylesheet" href="styles.css">
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#6366f1">
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="modern.css">
+    <link rel="stylesheet" href="mobile-responsive.css">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 </head>
 <body>
-    <nav class="sidebar">
-        <h2>Inventory App</h2>
-        <ul>
-            <li><a href="dashboard.html">Dashboard</a></li>
-            <li><a href="inventory.html" class="active">Inventory</a></li>
-            <li><a href="sales.html">Sales</a></li>
-        </ul>
-        <button id="logoutBtn">Logout</button>
-    </nav>
-    <main class="main-content">
-        <div class="inventory-header">
-            <h1>Product Inventory</h1>
-            <div class="header-actions">
-                <div class="search-container">
-                    <input type="text" id="searchInput" placeholder="Search products...">
-                    <div class="search-icon">🔍</div>
+    <div class="app-layout">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <span>Inventory Pro</span>
                 </div>
-                <input type="file" id="csvInput" accept=".csv" style="display: none;">
-                <button id="importBtn" class="btn-secondary" style="margin-right: 10px;">
-                    📂 Import CSV
+            </div>
+            
+            <div class="nav-menu">
+                <ul>
+                    <li class="nav-item">
+                        <a href="dashboard.html" class="nav-link">
+                            <i class="fas fa-chart-line nav-icon"></i>
+                            Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="inventory.html" class="nav-link active">
+                            <i class="fas fa-boxes nav-icon"></i>
+                            Inventory
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="sales.html" class="nav-link">
+                            <i class="fas fa-cash-register nav-icon"></i>
+                            Sales
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="customers.html" class="nav-link">
+                            <i class="fas fa-users nav-icon"></i>
+                            Customers
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="analytics.html" class="nav-link">
+                            <i class="fas fa-chart-bar nav-icon"></i>
+                            Analytics
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="receipt.html" class="nav-link">
+                            <i class="fas fa-receipt nav-icon"></i>
+                            Receipt
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="sidebar-footer">
+                <button id="logoutBtn" class="btn btn-secondary" style="width: 100%;">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
                 </button>
-                <button id="addProductBtn" class="add-product-btn">
-                    <span>+</span> Add Product
-                </button>
             </div>
-        </div>
+        </nav>
 
-        <div class="inventory-stats">
-            <div class="stat-card">
-                <div class="stat-icon">📦</div>
-                <div class="stat-info">
-                    <h3 id="totalProducts">0</h3>
-                    <p>Total Products</p>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">💰</div>
-                <div class="stat-info">
-                    <h3 id="totalValue">₦0</h3>
-                    <p>Total Value</p>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">📈</div>
-                <div class="stat-info">
-                    <h3 id="lowStock">0</h3>
-                    <p>Low Stock</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="products-grid" id="productsGrid">
-            <!-- Products will be dynamically inserted here -->
-        </div>
-
-        <!-- Product Form Modal -->
-        <div id="productModal" class="modal-overlay hidden">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2 id="modalTitle">Add New Product</h2>
-                    <button type="button" class="modal-close" id="modalClose">&times;</button>
-                </div>
-                <form id="productFormElement" class="product-form">
-                    <input type="hidden" id="editProductId">
-                    <div class="form-group" style="text-align: center;">
-                        <img id="imagePreview" src="" style="max-width: 100px; max-height: 100px; display: none; margin: 0 auto 10px; border-radius: 8px;">
-                        <input type="file" id="productImage" accept="image/*" style="color: var(--text-secondary);">
-                    </div>
-                    <div class="form-group">
-                        <label for="productName">Product Name</label>
-                        <input type="text" id="productName" placeholder="Enter product name" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="brand">Brand</label>
-                        <input type="text" id="brand" placeholder="Enter brand name" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="barcode">Barcode (Optional)</label>
-                        <div style="display: flex; gap: 10px;">
-                            <input type="text" id="barcode" placeholder="Scan or enter barcode">
-                            <button type="button" id="scanBarcodeBtn" class="btn-secondary" style="padding: 10px;">📷</button>
+        <main class="main-content">
+            <div class="page-header">
+                <h1 class="page-title">Product Inventory</h1>
+                <div class="header-actions">
+                    <div class="search-container">
+                        <input type="text" id="searchInput" class="form-input search-input" placeholder="Search products...">
+                        <div class="search-icon">
+                            <i class="fas fa-search"></i>
                         </div>
                     </div>
+                    <input type="file" id="csvInput" accept=".csv" style="display: none;">
+                    <button id="importBtn" class="btn btn-secondary">
+                        <i class="fas fa-file-import"></i>
+                        Import CSV
+                    </button>
+                    <button id="addProductBtn" class="btn btn-primary">
+                        <i class="fas fa-plus"></i>
+                        Add Product
+                    </button>
+                    <button id="exportDataBtn" class="btn btn-secondary">
+                        <i class="fas fa-download"></i>
+                        Export Data
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-title">Total Products</div>
+                        <div class="stat-icon" style="background: rgb(37 99 235 / 0.1); color: var(--primary);">
+                            <i class="fas fa-boxes"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="totalProducts">0</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-title">Total Value</div>
+                        <div class="stat-icon" style="background: rgb(16 185 129 / 0.1); color: var(--success);">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="totalValue">₦0</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-title">Low Stock</div>
+                        <div class="stat-icon" style="background: rgb(245 158 11 / 0.1); color: var(--warning);">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="lowStock">0</div>
+                </div>
+            </div>
+
+            <!-- Products Grid -->
+            <div class="products-grid" id="productsGrid">
+                <!-- Products will be loaded here -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Product Modal -->
+    <div id="productModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">Add New Product</h2>
+                <button type="button" class="modal-close" id="modalClose">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="productForm">
+                    <input type="hidden" id="editProductId">
+                    
+                    <div class="form-group text-center">
+                        <img id="imagePreview" src="" style="max-width: 120px; max-height: 120px; display: none; margin: 0 auto var(--space-4); border-radius: var(--border-radius); object-fit: cover; border: 2px solid var(--gray-200);">
+                        <input type="file" id="productImage" accept="image/*" class="form-input">
+                    </div>
+                    
                     <div class="form-group">
-                        <label for="category">Category</label>
-                        <select id="category" required>
+                        <label for="productName" class="form-label">Product Name</label>
+                        <input type="text" id="productName" class="form-input" placeholder="Enter product name" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="brand" class="form-label">Brand</label>
+                        <input type="text" id="brand" class="form-input" placeholder="Enter brand name" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="barcode" class="form-label">Barcode (Optional)</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="barcode" class="form-input" placeholder="Scan or enter barcode">
+                            <button type="button" id="scanBarcodeBtn" class="btn btn-secondary">
+                                <i class="fas fa-camera"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="category" class="form-label">Category</label>
+                        <select id="category" class="form-input" required>
                             <option value="">Select Category</option>
                             <option value="Electronics">Electronics</option>
                             <option value="Provisions">Provisions</option>
@@ -104,58 +187,58 @@
                             <option value="Others">Others</option>
                         </select>
                     </div>
+                    
                     <div class="form-group">
-                        <label for="storage">Storage (Optional)</label>
-                        <input type="text" id="storage" placeholder="e.g., 128GB, 1L, Large">
+                        <label for="storage" class="form-label">Storage (Optional)</label>
+                        <input type="text" id="storage" class="form-input" placeholder="e.g., 128GB, 1L, Large">
                     </div>
-                    <div class="form-row">
+                    
+                    <div class="grid grid-cols-2">
                         <div class="form-group">
-                            <label for="costPrice">Cost Price (₦)</label>
-                            <input type="number" id="costPrice" placeholder="0.00" step="0.01" required>
+                            <label for="costPrice" class="form-label">Cost Price (₦)</label>
+                            <input type="number" id="costPrice" class="form-input" placeholder="0.00" step="0.01" required>
                         </div>
                         <div class="form-group">
-                            <label for="sellingPrice">Selling Price (₦)</label>
-                            <input type="number" id="sellingPrice" placeholder="0.00" step="0.01" required>
+                            <label for="sellingPrice" class="form-label">Selling Price (₦)</label>
+                            <input type="number" id="sellingPrice" class="form-input" placeholder="0.00" step="0.01" required>
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label for="quantity">Quantity</label>
-                        <input type="number" id="quantity" placeholder="Enter quantity" required>
-                    </div>
-                    <div class="form-row">
+                    
+                    <div class="grid grid-cols-2">
                         <div class="form-group">
-                            <label for="supplierName">Supplier Name</label>
-                            <input type="text" id="supplierName" placeholder="Supplier Name">
+                            <label for="quantity" class="form-label">Quantity</label>
+                            <input type="number" id="quantity" class="form-input" placeholder="0" min="0" required>
                         </div>
                         <div class="form-group">
-                            <label for="supplierPhone">Supplier Phone</label>
-                            <input type="tel" id="supplierPhone" placeholder="Supplier Phone">
+                            <label for="minStock" class="form-label">Min Stock Level</label>
+                            <input type="number" id="minStock" class="form-input" placeholder="5" min="0" value="5">
                         </div>
                     </div>
-                    <div class="form-actions">
-                        <button type="button" id="cancelBtn" class="btn-secondary">Cancel</button>
-                        <button type="submit" class="btn-primary">Save Product</button>
+                    
+                    <div class="flex gap-4">
+                        <button type="button" id="cancelBtn" class="btn btn-secondary" style="flex: 1;">
+                            Cancel
+                        </button>
+                        <button type="submit" class="btn btn-primary" style="flex: 1;">
+                            <i class="fas fa-save"></i>
+                            Save Product
+                        </button>
                     </div>
                 </form>
             </div>
         </div>
+    </div>
 
-        <!-- Scanner Modal -->
-        <div id="scannerModal" class="modal-overlay hidden">
-            <div class="modal-content" style="max-width: 400px;">
-                <div class="modal-header">
-                    <h2>Scan Barcode</h2>
-                    <button type="button" class="modal-close" id="closeScannerModal">&times;</button>
-                </div>
-                <div id="reader" style="width: 100%;"></div>
-            </div>
-        </div>
-    </main>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    <!-- Notification Container -->
+    <div id="notificationContainer" style="position: fixed; top: 20px; right: 20px; z-index: 10000;"></div>
+
     <script src="firebase.js"></script>
+    <script src="notifications.js"></script>
+    <script src="barcode-scanner.js"></script>
+    <script src="mobile-nav.js"></script>
+    <script src="pwa-manager.js"></script>
+    <script src="data-manager.js"></script>
+    <script src="whatsapp-manager.js"></script>
     <script src="auth.js"></script>
     <script src="inventory.js"></script>
 </body>

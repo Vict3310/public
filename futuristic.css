@@ -1,0 +1,515 @@
+/* FUTURISTIC 2030 UI DESIGN SYSTEM */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
+
+:root {
+  /* Futuristic Color Palette */
+  --primary: #00d4ff;
+  --primary-dark: #0099cc;
+  --secondary: #7c3aed;
+  --accent: #ff6b6b;
+  --success: #00ff88;
+  --warning: #ffaa00;
+  --danger: #ff4757;
+  --info: #3742fa;
+  
+  /* Neural Network Colors */
+  --neural-blue: #0066ff;
+  --neural-purple: #8b5cf6;
+  --neural-pink: #ec4899;
+  --neural-cyan: #06b6d4;
+  
+  /* Backgrounds */
+  --bg-primary: #0a0a0f;
+  --bg-secondary: #111118;
+  --bg-tertiary: #1a1a24;
+  --bg-glass: rgba(255, 255, 255, 0.03);
+  --bg-glass-hover: rgba(255, 255, 255, 0.08);
+  --bg-neural: linear-gradient(135deg, rgba(0, 212, 255, 0.1) 0%, rgba(124, 58, 237, 0.1) 100%);
+  
+  /* Text */
+  --text-primary: #ffffff;
+  --text-secondary: #a0a0a0;
+  --text-muted: #666666;
+  --text-accent: #00d4ff;
+  
+  /* Borders */
+  --border-neural: rgba(0, 212, 255, 0.3);
+  --border-glass: rgba(255, 255, 255, 0.1);
+  
+  /* Shadows & Glows */
+  --glow-primary: 0 0 20px rgba(0, 212, 255, 0.5);
+  --glow-secondary: 0 0 20px rgba(124, 58, 237, 0.5);
+  --glow-accent: 0 0 20px rgba(255, 107, 107, 0.5);
+  --shadow-neural: 0 8px 32px rgba(0, 0, 0, 0.3);
+  --shadow-float: 0 20px 40px rgba(0, 0, 0, 0.4);
+  
+  /* Spacing */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+  
+  /* Border Radius */
+  --radius: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-full: 9999px;
+  
+  /* Transitions */
+  --transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Reset & Base */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Neural Network Background */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    radial-gradient(circle at 20% 80%, rgba(0, 212, 255, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(124, 58, 237, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 40% 40%, rgba(255, 107, 107, 0.05) 0%, transparent 50%);
+  z-index: -1;
+  animation: neuralPulse 8s ease-in-out infinite;
+}
+
+/* Futuristic Animations */
+@keyframes neuralPulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.6; }
+}
+
+@keyframes hologramFlicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes dataFlow {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes quantumSpin {
+  0% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.1); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+
+@keyframes morphBackground {
+  0%, 100% { border-radius: var(--radius-lg); }
+  50% { border-radius: var(--radius-xl); }
+}
+
+/* Glassmorphism Components */
+.glass {
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-glass);
+  box-shadow: var(--shadow-neural);
+}
+
+.glass-hover {
+  transition: var(--transition);
+}
+
+.glass-hover:hover {
+  background: var(--bg-glass-hover);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-float);
+}
+
+/* Neural Network Cards */
+.neural-card {
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border-neural);
+  border-radius: var(--radius-lg);
+  padding: var(--space-8);
+  position: relative;
+  overflow: hidden;
+  transition: var(--transition);
+  animation: morphBackground 6s ease-in-out infinite;
+}
+
+.neural-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
+  animation: dataFlow 3s linear infinite;
+}
+
+.neural-card:hover {
+  transform: translateY(-8px) rotateX(5deg);
+  box-shadow: var(--glow-primary);
+  border-color: var(--primary);
+}
+
+/* Holographic Buttons */
+.btn-holo {
+  position: relative;
+  padding: var(--space-4) var(--space-8);
+  background: transparent;
+  border: 2px solid var(--primary);
+  border-radius: var(--radius-full);
+  color: var(--primary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: var(--transition);
+  animation: hologramFlicker 4s ease-in-out infinite;
+}
+
+.btn-holo::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.2), transparent);
+  transition: var(--transition);
+}
+
+.btn-holo:hover::before {
+  left: 100%;
+  transition: left 0.5s ease;
+}
+
+.btn-holo:hover {
+  color: var(--text-primary);
+  background: var(--primary);
+  box-shadow: var(--glow-primary);
+  transform: scale(1.05);
+}
+
+/* Quantum Loading Spinner */
+.quantum-loader {
+  width: 60px;
+  height: 60px;
+  border: 3px solid transparent;
+  border-top: 3px solid var(--primary);
+  border-right: 3px solid var(--secondary);
+  border-radius: 50%;
+  animation: quantumSpin 1.5s linear infinite;
+  position: relative;
+}
+
+.quantum-loader::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  right: 6px;
+  bottom: 6px;
+  border: 2px solid transparent;
+  border-top: 2px solid var(--accent);
+  border-radius: 50%;
+  animation: quantumSpin 1s linear infinite reverse;
+}
+
+/* Futuristic Forms */
+.form-neural {
+  position: relative;
+}
+
+.form-neural input {
+  width: 100%;
+  padding: var(--space-4) var(--space-6);
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-size: 1rem;
+  transition: var(--transition);
+  backdrop-filter: blur(10px);
+}
+
+.form-neural input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: var(--glow-primary);
+  background: var(--bg-glass-hover);
+}
+
+.form-neural label {
+  position: absolute;
+  top: var(--space-4);
+  left: var(--space-6);
+  color: var(--text-secondary);
+  transition: var(--transition);
+  pointer-events: none;
+}
+
+.form-neural input:focus + label,
+.form-neural input:not(:placeholder-shown) + label {
+  top: -10px;
+  left: var(--space-4);
+  font-size: 0.75rem;
+  color: var(--primary);
+  background: var(--bg-primary);
+  padding: 0 var(--space-2);
+}
+
+/* Sidebar 2030 */
+.sidebar-2030 {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 280px;
+  height: 100vh;
+  background: var(--bg-glass);
+  backdrop-filter: blur(30px);
+  border-right: 1px solid var(--border-neural);
+  z-index: 100;
+  overflow: hidden;
+}
+
+.sidebar-2030::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 2px;
+  height: 100%;
+  background: linear-gradient(180deg, var(--primary), var(--secondary), var(--accent));
+  animation: dataFlow 4s linear infinite;
+}
+
+.nav-item-2030 {
+  position: relative;
+  margin: var(--space-2) var(--space-4);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: var(--transition);
+}
+
+.nav-item-2030::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: var(--bg-neural);
+  transition: var(--transition);
+}
+
+.nav-item-2030:hover::before {
+  left: 0;
+}
+
+.nav-link-2030 {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-6);
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: var(--transition);
+  z-index: 1;
+}
+
+.nav-link-2030:hover {
+  color: var(--text-primary);
+  transform: translateX(8px);
+}
+
+.nav-link-2030.active {
+  color: var(--primary);
+  text-shadow: 0 0 10px var(--primary);
+}
+
+/* Dashboard Cards 2030 */
+.dashboard-card-2030 {
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  padding: var(--space-8);
+  position: relative;
+  overflow: hidden;
+  transition: var(--transition);
+  cursor: pointer;
+}
+
+.dashboard-card-2030::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  transform: scaleX(0);
+  transition: var(--transition);
+}
+
+.dashboard-card-2030:hover::before {
+  transform: scaleX(1);
+}
+
+.dashboard-card-2030:hover {
+  transform: translateY(-12px) rotateX(10deg);
+  box-shadow: var(--shadow-float);
+  border-color: var(--primary);
+}
+
+.card-value-2030 {
+  font-size: 3rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: hologramFlicker 3s ease-in-out infinite;
+}
+
+/* Auth Container 2030 */
+.auth-container-2030 {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  position: relative;
+}
+
+.auth-container-2030::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(0, 212, 255, 0.1) 0%, transparent 70%);
+  transform: translate(-50%, -50%);
+  animation: neuralPulse 6s ease-in-out infinite;
+}
+
+.auth-card-2030 {
+  background: var(--bg-glass);
+  backdrop-filter: blur(30px);
+  border: 1px solid var(--border-neural);
+  border-radius: var(--radius-xl);
+  padding: var(--space-12);
+  width: 100%;
+  max-width: 450px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-neural);
+}
+
+.auth-card-2030::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
+  animation: dataFlow 4s linear infinite;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .sidebar-2030 {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+  
+  .sidebar-2030.open {
+    transform: translateX(0);
+  }
+  
+  .main-content-2030 {
+    margin-left: 0;
+    padding: var(--space-4);
+  }
+}
+
+/* Utility Classes */
+.glow-primary { box-shadow: var(--glow-primary); }
+.glow-secondary { box-shadow: var(--glow-secondary); }
+.glow-accent { box-shadow: var(--glow-accent); }
+
+.text-gradient {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.border-neural { border: 1px solid var(--border-neural); }
+.bg-neural { background: var(--bg-neural); }
+
+.animate-pulse { animation: neuralPulse 2s ease-in-out infinite; }
+.animate-flicker { animation: hologramFlicker 3s ease-in-out infinite; }
+.animate-flow { animation: dataFlow 3s linear infinite; }
+
+/* Main Content Layout */
+.main-content-2030 {
+  margin-left: 280px;
+  padding: var(--space-8);
+  min-height: 100vh;
+  position: relative;
+}
+
+.page-header-2030 {
+  margin-bottom: var(--space-8);
+  text-align: center;
+}
+
+.page-title-2030 {
+  font-size: 4rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--primary), var(--secondary), var(--accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: var(--space-4);
+  animation: hologramFlicker 4s ease-in-out infinite;
+}
+
+.page-subtitle-2030 {
+  font-size: 1.25rem;
+  color: var(--text-secondary);
+  font-weight: 300;
+}

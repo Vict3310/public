@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customers - Inventory & Sales</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="modern.css">
+    <link rel="stylesheet" href="mobile-responsive.css">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+</head>
+<body>
+    <div class="app-layout">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <span>Inventory Pro</span>
+                </div>
+            </div>
+            
+            <div class="nav-menu">
+                <ul>
+                    <li class="nav-item">
+                        <a href="dashboard.html" class="nav-link">
+                            <i class="fas fa-chart-line nav-icon"></i>
+                            Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="inventory.html" class="nav-link">
+                            <i class="fas fa-boxes nav-icon"></i>
+                            Inventory
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="sales.html" class="nav-link">
+                            <i class="fas fa-cash-register nav-icon"></i>
+                            Sales
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="customers.html" class="nav-link active">
+                            <i class="fas fa-users nav-icon"></i>
+                            Customers
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="receipt.html" class="nav-link">
+                            <i class="fas fa-receipt nav-icon"></i>
+                            Receipt
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="sidebar-footer">
+                <button id="logoutBtn" class="btn btn-secondary" style="width: 100%;">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </button>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <div class="page-header">
+                <h1 class="page-title">Customer Management</h1>
+                <div class="header-actions">
+                    <div class="search-container">
+                        <input type="text" id="searchCustomers" class="form-input search-input" placeholder="Search customers...">
+                        <div class="search-icon">
+                            <i class="fas fa-search"></i>
+                        </div>
+                    </div>
+                    <button id="addCustomerBtn" class="btn btn-primary">
+                        <i class="fas fa-user-plus"></i>
+                        Add Customer
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-title">Total Customers</div>
+                        <div class="stat-icon" style="background: rgb(37 99 235 / 0.1); color: var(--primary);">
+                            <i class="fas fa-users"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="totalCustomers">0</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-title">Active This Month</div>
+                        <div class="stat-icon" style="background: rgb(16 185 129 / 0.1); color: var(--success);">
+                            <i class="fas fa-user-check"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="activeCustomers">0</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-title">Outstanding Credit</div>
+                        <div class="stat-icon" style="background: rgb(245 158 11 / 0.1); color: var(--warning);">
+                            <i class="fas fa-credit-card"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="totalCredit">₦0</div>
+                </div>
+            </div>
+
+            <!-- Customers List -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Customer List</h3>
+                </div>
+                <div class="card-content">
+                    <div id="customersList">
+                        <!-- Customers will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Customer Modal -->
+    <div id="customerModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="customerModalTitle">Add New Customer</h2>
+                <button type="button" class="modal-close" id="closeCustomerModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="customerForm">
+                    <input type="hidden" id="editCustomerId">
+                    
+                    <div class="form-group">
+                        <label for="customerName" class="form-label">Full Name</label>
+                        <input type="text" id="customerName" class="form-input" placeholder="Enter customer name" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="customerPhone" class="form-label">Phone Number</label>
+                        <input type="tel" id="customerPhone" class="form-input" placeholder="e.g., 08012345678" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="customerEmail" class="form-label">Email (Optional)</label>
+                        <input type="email" id="customerEmail" class="form-input" placeholder="customer@email.com">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="customerAddress" class="form-label">Address</label>
+                        <textarea id="customerAddress" class="form-input" rows="3" placeholder="Enter customer address"></textarea>
+                    </div>
+                    
+                    <div class="grid grid-cols-2">
+                        <div class="form-group">
+                            <label for="creditLimit" class="form-label">Credit Limit (₦)</label>
+                            <input type="number" id="creditLimit" class="form-input" placeholder="0.00" step="0.01" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="loyaltyPoints" class="form-label">Loyalty Points</label>
+                            <input type="number" id="loyaltyPoints" class="form-input" placeholder="0" value="0" readonly>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-4">
+                        <button type="button" id="cancelCustomerBtn" class="btn btn-secondary" style="flex: 1;">
+                            Cancel
+                        </button>
+                        <button type="submit" class="btn btn-primary" style="flex: 1;">
+                            <i class="fas fa-save"></i>
+                            Save Customer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notificationContainer" style="position: fixed; top: 20px; right: 20px; z-index: 10000;"></div>
+
+    <script src="firebase.js"></script>
+    <script src="notifications.js"></script>
+    <script src="mobile-nav.js"></script>
+    <script src="auth.js"></script>
+    <script src="customers.js"></script>
+</body>
+</html>

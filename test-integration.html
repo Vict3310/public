@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - Inventory & Sales</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-item { margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Inventory & Sales App - Integration Test</h1>
+    
+    <div class="test-item">
+        <h3>🔥 Firebase Connection</h3>
+        <p id="firebaseStatus">Testing...</p>
+        <button onclick="testFirebase()">Test Firebase</button>
+    </div>
+    
+    <div class="test-item">
+        <h3>🔔 Notification System</h3>
+        <button onclick="testNotifications()">Test Notifications</button>
+    </div>
+    
+    <div class="test-item">
+        <h3>🔐 Authentication</h3>
+        <p id="authStatus">Not logged in</p>
+        <button onclick="testAuth()">Check Auth Status</button>
+    </div>
+    
+    <div class="test-item">
+        <h3>📊 Database Structure</h3>
+        <p id="dbStatus">Ready to test</p>
+        <button onclick="testDatabase()">Test Database Access</button>
+    </div>
+    
+    <div class="test-item">
+        <h3>🧭 Navigation</h3>
+        <a href="index.html">Login Page</a> | 
+        <a href="dashboard.html">Dashboard</a> | 
+        <a href="inventory.html">Inventory</a> | 
+        <a href="sales.html">Sales</a> | 
+        <a href="receipt.html">Receipt</a>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="firebase.js"></script>
+    <script src="notifications.js"></script>
+    
+    <script>
+        function testFirebase() {
+            const status = document.getElementById('firebaseStatus');
+            try {
+                if (firebase.apps.length > 0) {
+                    status.innerHTML = '✅ Firebase initialized successfully';
+                    status.parentElement.className = 'test-item success';
+                } else {
+                    status.innerHTML = '❌ Firebase not initialized';
+                    status.parentElement.className = 'test-item error';
+                }
+            } catch (error) {
+                status.innerHTML = '❌ Firebase error: ' + error.message;
+                status.parentElement.className = 'test-item error';
+            }
+        }
+        
+        function testNotifications() {
+            showNotification('✅ Notification system working!', 'success');
+            setTimeout(() => showNotification('⚠️ Warning notification', 'warning'), 1000);
+            setTimeout(() => showNotification('❌ Error notification', 'error'), 2000);
+            setTimeout(() => showNotification('ℹ️ Info notification', 'info'), 3000);
+        }
+        
+        function testAuth() {
+            const status = document.getElementById('authStatus');
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    status.innerHTML = `✅ Logged in as: ${user.email}`;
+                    status.parentElement.className = 'test-item success';
+                } else {
+                    status.innerHTML = '❌ Not logged in';
+                    status.parentElement.className = 'test-item error';
+                }
+            });
+        }
+        
+        async function testDatabase() {
+            const status = document.getElementById('dbStatus');
+            try {
+                const user = auth.currentUser;
+                if (!user) {
+                    status.innerHTML = '❌ Please login first';
+                    status.parentElement.className = 'test-item error';
+                    return;
+                }
+                
+                // Test reading from standardized structure
+                const snapshot = await db.collection('users').doc(user.uid).collection('products').limit(1).get();
+                status.innerHTML = `✅ Database accessible. Found ${snapshot.size} products.`;
+                status.parentElement.className = 'test-item success';
+                
+            } catch (error) {
+                status.innerHTML = '❌ Database error: ' + error.message;
+                status.parentElement.className = 'test-item error';
+            }
+        }
+        
+        // Auto-run tests
+        window.addEventListener('load', () => {
+            testFirebase();
+            testAuth();
+        });
+    </script>
+</body>
+</html>

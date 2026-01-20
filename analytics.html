@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Inventory & Sales</title>
+    <title>Analytics - Inventory & Sales</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="modern.css">
     <link rel="stylesheet" href="mobile-responsive.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -26,7 +27,7 @@
             <div class="nav-menu">
                 <ul>
                     <li class="nav-item">
-                        <a href="dashboard.html" class="nav-link active">
+                        <a href="dashboard.html" class="nav-link">
                             <i class="fas fa-chart-line nav-icon"></i>
                             Dashboard
                         </a>
@@ -50,15 +51,9 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="analytics.html" class="nav-link">
+                        <a href="analytics.html" class="nav-link active">
                             <i class="fas fa-chart-bar nav-icon"></i>
                             Analytics
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="receipt.html" class="nav-link">
-                            <i class="fas fa-receipt nav-icon"></i>
-                            Receipt
                         </a>
                     </li>
                 </ul>
@@ -74,68 +69,100 @@
 
         <main class="main-content">
             <div class="page-header">
-                <h1 class="page-title">Dashboard</h1>
-                <p class="page-subtitle">Overview of your business performance</p>
+                <h1 class="page-title">Sales Analytics</h1>
+                <div class="header-actions">
+                    <select id="periodSelect" class="form-input">
+                        <option value="7">Last 7 Days</option>
+                        <option value="30">Last 30 Days</option>
+                        <option value="90">Last 3 Months</option>
+                        <option value="365">Last Year</option>
+                    </select>
+                    <button id="exportReportBtn" class="btn btn-secondary">
+                        <i class="fas fa-download"></i>
+                        Export Report
+                    </button>
+                </div>
             </div>
 
-            <!-- Stats Grid -->
+            <!-- Key Metrics -->
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-header">
-                        <div class="stat-title">Total Revenue</div>
+                        <div class="stat-title">Revenue Growth</div>
                         <div class="stat-icon" style="background: rgb(16 185 129 / 0.1); color: var(--success);">
-                            <i class="fas fa-dollar-sign"></i>
+                            <i class="fas fa-trending-up"></i>
                         </div>
                     </div>
-                    <div class="stat-value" id="totalRevenue">₦0</div>
-                    <div class="stat-change positive" id="revenueChange">+0% from last month</div>
+                    <div class="stat-value" id="revenueGrowth">+0%</div>
+                    <div class="stat-change" id="revenueGrowthText">vs previous period</div>
                 </div>
 
                 <div class="stat-card">
                     <div class="stat-header">
-                        <div class="stat-title">Total Profit</div>
+                        <div class="stat-title">Best Selling Product</div>
                         <div class="stat-icon" style="background: rgb(37 99 235 / 0.1); color: var(--primary);">
-                            <i class="fas fa-chart-line"></i>
+                            <i class="fas fa-star"></i>
                         </div>
                     </div>
-                    <div class="stat-value" id="totalProfit">₦0</div>
-                    <div class="stat-change positive" id="profitChange">+0% from last month</div>
+                    <div class="stat-value" id="bestProduct">-</div>
+                    <div class="stat-change" id="bestProductSales">0 units sold</div>
                 </div>
 
                 <div class="stat-card">
                     <div class="stat-header">
-                        <div class="stat-title">Products Sold</div>
+                        <div class="stat-title">Avg. Order Value</div>
                         <div class="stat-icon" style="background: rgb(245 158 11 / 0.1); color: var(--warning);">
-                            <i class="fas fa-shopping-cart"></i>
+                            <i class="fas fa-receipt"></i>
                         </div>
                     </div>
-                    <div class="stat-value" id="productsSold">0</div>
-                    <div class="stat-change positive" id="salesChange">+0% from last month</div>
+                    <div class="stat-value" id="avgOrderValue">₦0</div>
+                    <div class="stat-change" id="avgOrderChange">+0% vs last period</div>
                 </div>
 
                 <div class="stat-card">
                     <div class="stat-header">
-                        <div class="stat-title">Low Stock Items</div>
-                        <div class="stat-icon" style="background: rgb(239 68 68 / 0.1); color: var(--error);">
-                            <i class="fas fa-exclamation-triangle"></i>
+                        <div class="stat-title">Profit Margin</div>
+                        <div class="stat-icon" style="background: rgb(139 69 19 / 0.1); color: #8b4513;">
+                            <i class="fas fa-percentage"></i>
                         </div>
                     </div>
-                    <div class="stat-value" id="lowStockCount">0</div>
-                    <div class="stat-change" id="stockChange">Items need attention</div>
+                    <div class="stat-value" id="profitMargin">0%</div>
+                    <div class="stat-change" id="profitMarginChange">Healthy margin</div>
                 </div>
             </div>
 
-            <!-- Recent Activity -->
-            <div class="grid grid-cols-2" style="grid-template-columns: 2fr 1fr;">
+            <!-- Charts -->
+            <div class="grid" style="grid-template-columns: 2fr 1fr; gap: var(--space-6);">
                 <div class="card">
                     <div class="card-header">
-                        <h3 class="card-title">Recent Sales</h3>
+                        <h3 class="card-title">Sales Trend</h3>
                     </div>
                     <div class="card-content">
-                        <div id="recentSales">
-                            <div class="text-center" style="padding: var(--space-8); color: var(--gray-500);">
-                                <i class="fas fa-chart-bar" style="font-size: 3rem; margin-bottom: var(--space-4);"></i>
-                                <p>No sales recorded yet</p>
+                        <canvas id="salesChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Top Categories</h3>
+                    </div>
+                    <div class="card-content">
+                        <canvas id="categoryChart" width="300" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Insights & Recommendations -->
+            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: var(--space-6); margin-top: var(--space-6);">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Business Insights</h3>
+                    </div>
+                    <div class="card-content">
+                        <div id="businessInsights">
+                            <div class="insight-item" style="padding: var(--space-3); border-left: 4px solid var(--success); margin-bottom: var(--space-3); background: rgba(16, 185, 129, 0.1);">
+                                <div style="font-weight: 600; color: var(--success);">📈 Sales Performance</div>
+                                <div style="font-size: 0.875rem; margin-top: 4px;">Loading insights...</div>
                             </div>
                         </div>
                     </div>
@@ -143,37 +170,14 @@
 
                 <div class="card">
                     <div class="card-header">
-                        <h3 class="card-title">Quick Actions</h3>
+                        <h3 class="card-title">Recommendations</h3>
                     </div>
                     <div class="card-content">
-                        <div style="display: flex; flex-direction: column; gap: var(--space-3);">
-                            <a href="inventory.html" class="btn btn-primary">
-                                <i class="fas fa-plus"></i>
-                                Add Product
-                            </a>
-                            <a href="sales.html" class="btn btn-success">
-                                <i class="fas fa-cash-register"></i>
-                                Record Sale
-                            </a>
-                            <a href="receipt.html" class="btn btn-secondary">
-                                <i class="fas fa-receipt"></i>
-                                Generate Receipt
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Top Products -->
-            <div class="card" style="margin-top: var(--space-8);">
-                <div class="card-header">
-                    <h3 class="card-title">Top Selling Products</h3>
-                </div>
-                <div class="card-content">
-                    <div id="topProducts">
-                        <div class="text-center" style="padding: var(--space-8); color: var(--gray-500);">
-                            <i class="fas fa-box-open" style="font-size: 3rem; margin-bottom: var(--space-4);"></i>
-                            <p>No product data available</p>
+                        <div id="recommendations">
+                            <div class="recommendation-item" style="padding: var(--space-3); border-left: 4px solid var(--primary); margin-bottom: var(--space-3); background: rgba(37, 99, 235, 0.1);">
+                                <div style="font-weight: 600; color: var(--primary);">💡 Stock Management</div>
+                                <div style="font-size: 0.875rem; margin-top: 4px;">Loading recommendations...</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -188,6 +192,6 @@
     <script src="notifications.js"></script>
     <script src="mobile-nav.js"></script>
     <script src="auth.js"></script>
-    <script src="dashboard-simple.js"></script>
+    <script src="analytics.js"></script>
 </body>
 </html>

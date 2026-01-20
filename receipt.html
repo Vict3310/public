@@ -4,41 +4,177 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Receipt - Inventory & Sales</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="modern.css">
+    <link rel="stylesheet" href="receipt-styles.css">
+    <link rel="stylesheet" href="mobile-responsive.css">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 </head>
 <body>
-    <div class="receipt-container">
-        <div id="receipt">
-            <div class="receipt-header">
-                <h1>Your Business Name</h1>
-                <p>Address: Your Address Here</p>
-                <p>Phone: Your Phone Number</p>
+    <div class="app-layout">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <span>Inventory Pro</span>
+                </div>
             </div>
-            <div class="receipt-body">
-                <p><strong>Order ID:</strong> <span id="orderId"></span></p>
-                <p><strong>Date:</strong> <span id="date"></span></p>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Product</th>
-                            <th>Qty</th>
-                            <th>Price</th>
-                            <th>Total</th>
-                        </tr>
-                    </thead>
-                    <tbody id="receiptItems">
-                    </tbody>
-                </table>
-                <p><strong>Total: ₦<span id="totalAmount"></span></strong></p>
+            
+            <div class="nav-menu">
+                <ul>
+                    <li class="nav-item">
+                        <a href="dashboard.html" class="nav-link">
+                            <i class="fas fa-chart-line nav-icon"></i>
+                            Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="inventory.html" class="nav-link">
+                            <i class="fas fa-boxes nav-icon"></i>
+                            Inventory
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="sales.html" class="nav-link">
+                            <i class="fas fa-cash-register nav-icon"></i>
+                            Sales
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="receipt.html" class="nav-link active">
+                            <i class="fas fa-receipt nav-icon"></i>
+                            Receipt
+                        </a>
+                    </li>
+                </ul>
             </div>
-        </div>
-        <button id="printBtn">Print Receipt</button>
-        <button id="whatsappBtn">Send to WhatsApp</button>
+            
+            <div class="sidebar-footer">
+                <button id="logoutBtn" class="btn btn-secondary" style="width: 100%;">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </button>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <div class="page-header">
+                <h1 class="page-title">Receipt Generator</h1>
+                <p class="page-subtitle">Generate and send receipts to customers</p>
+            </div>
+
+            <div class="grid" style="grid-template-columns: 1fr 400px; gap: var(--space-8);">
+                <!-- Receipt Preview -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Receipt Preview</h3>
+                        <div class="flex gap-2">
+                            <button id="printBtn" class="btn btn-secondary">
+                                <i class="fas fa-print"></i>
+                                Print
+                            </button>
+                            <button id="whatsappBtn" class="btn btn-success">
+                                <i class="fab fa-whatsapp"></i>
+                                Send WhatsApp
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <div id="receiptPreview" class="receipt-container">
+                            <div class="receipt-header">
+                                <h1>INVENTORY PRO</h1>
+                                <p>Your Business Address</p>
+                                <p>Phone: Your Phone Number</p>
+                            </div>
+                            <div class="receipt-body">
+                                <div class="receipt-info">
+                                    <p><strong>Order ID:</strong> <span id="orderId">-</span></p>
+                                    <p><strong>Date:</strong> <span id="date">-</span></p>
+                                </div>
+                                <table class="receipt-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Item</th>
+                                            <th>Qty</th>
+                                            <th>Price</th>
+                                            <th>Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="receiptItems">
+                                        <!-- Items will be populated here -->
+                                    </tbody>
+                                </table>
+                                <div class="receipt-total">
+                                    <p><strong>TOTAL: ₦<span id="totalAmount">0</span></strong></p>
+                                </div>
+                                <div class="receipt-footer">
+                                    <p>Thank you for your business!</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Sales -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Recent Sales</h3>
+                    </div>
+                    <div class="card-content">
+                        <div id="salesList">
+                            <div class="text-center" style="padding: var(--space-8); color: var(--gray-500);">
+                                <i class="fas fa-chart-bar" style="font-size: 3rem; margin-bottom: var(--space-4);"></i>
+                                <p>No sales recorded yet</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WhatsApp Modal -->
+            <div id="whatsappModal" class="modal-overlay hidden">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2 class="modal-title">Send via WhatsApp</h2>
+                        <button type="button" class="modal-close" id="closeWhatsapp">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="whatsappNumber" class="form-label">Customer Phone Number</label>
+                            <input type="tel" id="whatsappNumber" class="form-input" placeholder="e.g., 2348123456789">
+                            <small style="color: var(--gray-500); font-size: 0.75rem;">Include country code without + sign</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="whatsappMessage" class="form-label">Message</label>
+                            <textarea id="whatsappMessage" class="form-input" rows="4" placeholder="Thank you for your purchase!"></textarea>
+                        </div>
+                        
+                        <div class="flex gap-4">
+                            <button type="button" id="cancelWhatsapp" class="btn btn-secondary" style="flex: 1;">
+                                Cancel
+                            </button>
+                            <button type="button" id="sendWhatsapp" class="btn btn-success" style="flex: 1;">
+                                <i class="fab fa-whatsapp"></i>
+                                Send Receipt
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
     </div>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <!-- Notification Container -->
+    <div id="notificationContainer" style="position: fixed; top: 20px; right: 20px; z-index: 10000;"></div>
+
     <script src="firebase.js"></script>
+    <script src="notifications.js"></script>
+    <script src="mobile-nav.js"></script>
     <script src="auth.js"></script>
     <script src="receipt.js"></script>
 </body>

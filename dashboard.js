@@ -20,8 +20,8 @@ document.addEventListener('DOMContentLoaded', function() {
     initAuthListener();
 });
 
+// Initialize dashboard
 function initAuthListener() {
-    // Initialize dashboard
     auth.onAuthStateChanged(async user => {
         console.log("Dashboard auth state:", user ? "logged in" : "logged out");
         if (user) {
@@ -37,7 +37,6 @@ function initAuthListener() {
             }
 
             currentUser.role = userData?.role || 'admin';
-            setupDateDefaults();
             initRealtimeDashboard();
             loadSettings();
         } else {
@@ -53,39 +52,24 @@ async function loadSettings() {
     const doc = await db.collection('users').doc(currentUser.uid).get();
     const data = doc.data();
     if (data) {
-        localStorage.setItem(`shopSettings_${currentUser.uid}`, JSON.stringify(data)); // Cache for other pages (user-specific)
-        // Update UI if needed
+        localStorage.setItem(`shopSettings_${currentUser.uid}`, JSON.stringify(data));
     }
 }
 
-function setupDateDefaults() {
-    const end = new Date();
-    const start = new Date();
-    start.setDate(start.getDate() - 7); // Default last 7 days
-
-    document.getElementById('endDate').valueAsDate = end;
-    document.getElementById('startDate').valueAsDate = start;
-}
-
-// Initialize Real-time Listeners
 function initRealtimeDashboard() {
     console.log("🎯 Initializing real-time dashboard listeners for user:", currentUser.uid);
-    initChart();
 
-    // 1. Products Listener (Total Products, Stock Value, Low Stock)
+    // 1. Products Listener
     console.log("Setting up products listener...");
     const productsUnsub = db.collection('users').doc(currentUser.uid).collection('products')
         .onSnapshot(snapshot => {
             console.log("📦 Products snapshot received:", snapshot.size, "products");
-            // Store products globally for AI analysis
             allProducts = [];
             snapshot.forEach(doc => allProducts.push({ id: doc.id, ...doc.data() }));
             updateProductStats(snapshot);
         }, error => {
             console.error("❌ Error listening to products:", error);
-            if (error.code === 'permission-denied') {
-                showNotification("⚠️ Database Error: Permission Denied. Check Firestore Rules.", "error");
-            }
+            showNotification("⚠️ Database Error: " + error.message, "error");
         });
 
     listeners.push(productsUnsub);
@@ -101,9 +85,7 @@ function initRealtimeDashboard() {
             updateFinancials();
         }, error => {
             console.error("❌ Error listening to sales:", error);
-            if (error.code === 'permission-denied') {
-                showNotification("⚠️ Database Error: Permission Denied. Check Firestore Rules.", "error");
-            }
+            showNotification("⚠️ Database Error: " + error.message, "error");
         });
 
     listeners.push(salesUnsub);
@@ -119,9 +101,7 @@ function initRealtimeDashboard() {
             updateFinancials();
         }, error => {
             console.error("❌ Error listening to expenses:", error);
-            if (error.code === 'permission-denied') {
-                showNotification("⚠️ Database Error: Permission Denied. Check Firestore Rules.", "error");
-            }
+            showNotification("⚠️ Database Error: " + error.message, "error");
         });
 
     listeners.push(expensesUnsub);
@@ -133,42 +113,37 @@ function initRealtimeDashboard() {
 function updateProductStats(snapshot) {
     console.log("Updating product stats, snapshot size:", snapshot.size);
     const isAdmin = currentUser.role === 'admin';
+    
     // Total Products
     const totalProductsEl = document.getElementById('totalProducts');
     if (totalProductsEl) {
         totalProductsEl.textContent = snapshot.size;
         console.log("Updated total products:", snapshot.size);
-    } else {
-        console.error("totalProducts element not found");
     }
 
     // Total Stock Value & Low Stock
     let totalValue = 0;
-    const lowStockList = document.getElementById('lowStockList');
-    lowStockList.innerHTML = '';
-    let hasLowStock = false;
+    let lowStockCount = 0;
 
     snapshot.forEach(doc => {
         const product = doc.data();
-        totalValue += product.costPrice * product.quantity;
+        totalValue += (product.sellingPrice || 0) * (product.quantity || 0);
 
-        // Low Stock Alert (< 3)
-        if (product.quantity < 3) {
-            hasLowStock = true;
-            const alertItem = document.createElement('div');
-            alertItem.className = 'alert-item';
-            alertItem.innerHTML = `<span>${product.name}</span> - ${product.quantity} left`;
-            lowStockList.appendChild(alertItem);
+        // Low Stock Alert (< 5)
+        if ((product.quantity || 0) < (product.minStock || 5)) {
+            lowStockCount++;
         }
     });
 
-    document.getElementById('totalStockValue').textContent = isAdmin ? `₦${totalValue.toLocaleString()}` : '***';
-
-    if (!hasLowStock) {
-        const healthyAlert = document.createElement('div');
-        healthyAlert.className = 'alert-item';
-        healthyAlert.innerHTML = '✅ All stock levels healthy';
-        lowStockList.appendChild(healthyAlert);
+    // Update stats in dashboard
+    const totalValueEl = document.getElementById('totalRevenue');
+    if (totalValueEl) {
+        totalValueEl.textContent = isAdmin ? `₦${totalValue.toLocaleString()}` : '***';
+    }
+    
+    const lowStockEl = document.getElementById('lowStockCount');
+    if (lowStockEl) {
+        lowStockEl.textContent = lowStockCount;
     }
 }
 
@@ -372,174 +347,79 @@ function initChart() {
 function updateFinancials() {
     console.log("Updating financial stats...");
     const isAdmin = currentUser.role === 'admin';
-    const startDate = new Date(document.getElementById('startDate').value);
-    const endDate = new Date(document.getElementById('endDate').value);
-    endDate.setHours(23, 59, 59, 999); // End of the day
-
-    console.log("Date range:", startDate, "to", endDate);
-
-    let totalSales = 0;
-    let todaySalesTotal = 0;
-    let todayProfitTotal = 0;
+    
+    let totalRevenue = 0;
     let totalProfit = 0;
-    let totalExpenses = 0;
-    let salesTodayCount = 0;
-    let salesWeekCount = 0;
+    let productsSold = 0;
     
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // Filter Sales by Date Range
-    const filteredSales = allSales.filter(sale => {
-        const d = sale.date.toDate();
-        return d >= startDate && d <= endDate;
-    });
-
-    // Filter Expenses by Date Range
-    const filteredExpenses = allExpenses.filter(exp => {
-        const d = exp.date.toDate();
-        return d >= startDate && d <= endDate;
-    });
-
-    // Prepare Chart Data Maps
-    const chartMap = new Map();
-    const profitMap = new Map();
-    
-    // Initialize chart map with days in range (up to 30 days to prevent overcrowding)
-    // For simplicity in this view, we'll just map the actual data points found
-
-    const productSales = {};
-    const productProfits = {};
-
     // Process Sales
-    filteredSales.forEach(sale => {
-        const saleDate = sale.date.toDate();
+    allSales.forEach(sale => {
+        totalRevenue += sale.revenue || sale.subtotal || 0;
+        totalProfit += sale.profit || 0;
         
-        // Chart Data Aggregation
-        const normalizedDate = new Date(saleDate);
-        normalizedDate.setHours(0,0,0,0);
-        const timeKey = normalizedDate.getTime();
-        
-        chartMap.set(timeKey, (chartMap.get(timeKey) || 0) + sale.revenue);
-        profitMap.set(timeKey, (profitMap.get(timeKey) || 0) + sale.profit);
-
-        // Total Profit (All time)
-        totalProfit += sale.profit;
-        totalSales += sale.revenue;
-
-        // Today's Stats
-        if (saleDate >= today) {
-            todaySalesTotal += sale.revenue;
-            todayProfitTotal += sale.profit;
-            salesTodayCount++;
+        if (sale.items && Array.isArray(sale.items)) {
+            productsSold += sale.items.reduce((sum, item) => sum + (item.quantity || 0), 0);
         }
-
-        // Analytics Data Prep
-        if (!productSales[sale.productName]) {
-            productSales[sale.productName] = 0;
-            productProfits[sale.productName] = 0;
-        }
-        productSales[sale.productName] += sale.quantity;
-        productProfits[sale.productName] += sale.profit;
     });
-
+    
     // Process Expenses
-    filteredExpenses.forEach(exp => {
-        totalExpenses += exp.amount;
-        // Subtract expense from profit map for that day to show Net Profit on chart
-        const expDate = exp.date.toDate();
-        expDate.setHours(0,0,0,0);
-        const timeKey = expDate.getTime();
-        profitMap.set(timeKey, (profitMap.get(timeKey) || 0) - exp.amount);
-    });
-
+    const totalExpenses = allExpenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
     const netProfit = totalProfit - totalExpenses;
-
-    // Update DOM
-    console.log("Updating DOM elements...");
-    const todaySalesEl = document.getElementById('todaySales');
-    const todayProfitEl = document.getElementById('todayProfit');
+    
+    // Update DOM elements
+    const totalRevenueEl = document.getElementById('totalRevenue');
     const totalProfitEl = document.getElementById('totalProfit');
-    const totalExpensesEl = document.getElementById('totalExpenses');
-    const netProfitEl = document.getElementById('netProfit');
-    const salesTodayEl = document.getElementById('salesToday');
-    const salesThisWeekEl = document.getElementById('salesThisWeek');
-
-    console.log("Elements found:", {
-        todaySalesEl, todayProfitEl, totalProfitEl, totalExpensesEl,
-        netProfitEl, salesTodayEl, salesThisWeekEl
-    });
-
-    if (todaySalesEl) todaySalesEl.textContent = `₦${todaySalesTotal.toLocaleString()}`;
-    if (todayProfitEl) todayProfitEl.textContent = isAdmin ? `₦${todayProfitTotal.toLocaleString()}` : '***';
-    if (totalProfitEl) totalProfitEl.textContent = isAdmin ? `₦${totalProfit.toLocaleString()}` : '***';
-    if (totalExpensesEl) totalExpensesEl.textContent = isAdmin ? `₦${totalExpenses.toLocaleString()}` : '***';
-
-    if (netProfitEl) {
-        netProfitEl.textContent = isAdmin ? `₦${netProfit.toLocaleString()}` : '***';
-        netProfitEl.style.color = netProfit >= 0 ? 'var(--success)' : 'var(--danger)';
-    }
-
-    if (salesTodayEl) salesTodayEl.textContent = salesTodayCount;
-    if (salesThisWeekEl) salesThisWeekEl.textContent = filteredSales.length;
-
-    // Calculate Best Sellers
-    const mostSold = Object.keys(productSales).length > 0 
-        ? Object.keys(productSales).reduce((a, b) => productSales[a] > productSales[b] ? a : b) 
-        : '-';
-    document.getElementById('mostSoldProduct').textContent = mostSold;
-
-    const bestProfit = Object.keys(productProfits).length > 0
-        ? Object.keys(productProfits).reduce((a, b) => productProfits[a] > productProfits[b] ? a : b)
-        : '-';
-    document.getElementById('bestProfitProduct').textContent = bestProfit;
-
-    // Update Chart
-    if (salesChart && profitChart) {
-        console.log("Updating charts with data...");
-        const chartLabels = [];
-        const chartData = [];
-        const profitData = [];
-
-        // Sort dates
-        const sortedKeys = Array.from(chartMap.keys()).sort();
-
-        sortedKeys.forEach(key => {
-            chartLabels.push(new Date(key).toLocaleDateString('en-US', { weekday: 'short' }));
-            chartData.push(chartMap.get(key));
-            profitData.push(profitMap.get(key) || 0);
-        });
-
-        console.log("Chart data:", { chartLabels, chartData, profitData });
-
-        salesChart.updateOptions({
-            xaxis: {
-                categories: chartLabels
-            }
-        });
-
-        salesChart.updateSeries([{
-            data: chartData
-        }]);
-
-        profitChart.updateOptions({
-            xaxis: {
-                categories: chartLabels
-            }
-        });
-
-        profitChart.updateSeries([{
-            data: profitData
-        }]);
-
-        console.log("Charts updated successfully");
-    } else {
-        console.warn("Charts not initialized yet");
-    }
+    const productsSoldEl = document.getElementById('productsSold');
+    
+    if (totalRevenueEl) totalRevenueEl.textContent = `₦${totalRevenue.toLocaleString()}`;
+    if (totalProfitEl) totalProfitEl.textContent = isAdmin ? `₦${netProfit.toLocaleString()}` : '***';
+    if (productsSoldEl) productsSoldEl.textContent = productsSold;
+    
+    // Update recent sales display
+    updateRecentSalesDisplay();
 }
 
-// Event Listeners for Controls
-document.getElementById('filterBtn').addEventListener('click', updateFinancials);
+function updateRecentSalesDisplay() {
+    const container = document.getElementById('recentSales');
+    if (!container) return;
+    
+    if (allSales.length === 0) {
+        container.innerHTML = `
+            <div class="text-center" style="padding: var(--space-8); color: var(--gray-500);">
+                <i class="fas fa-chart-bar" style="font-size: 3rem; margin-bottom: var(--space-4);"></i>
+                <p>No sales recorded yet</p>
+            </div>
+        `;
+        return;
+    }
+    
+    const recentSales = allSales.slice(0, 5); // Show last 5 sales
+    container.innerHTML = recentSales.map(sale => `
+        <div style="padding: var(--space-4); border: 1px solid var(--gray-200); border-radius: var(--border-radius); margin-bottom: var(--space-3);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div style="font-weight: 600;">${sale.customerName || 'Walk-in Customer'}</div>
+                    <div style="color: var(--gray-600); font-size: 0.875rem;">
+                        ${sale.items?.length || 0} item(s) • Profit: ₦${(sale.profit || 0).toLocaleString()}
+                    </div>
+                </div>
+                <div style="color: var(--success); font-weight: 600;">
+                    ₦${(sale.revenue || sale.subtotal || 0).toLocaleString()}
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Remove unused functions and simplify
+function setupDateDefaults() {
+    // Dashboard doesn't need date filters for now
+}
+
+function initChart() {
+    // Simplified - remove charts for now to focus on core functionality
+    console.log("Charts disabled for simplified version");
+}
 
 // Expense Modal Logic
 const expenseModal = document.getElementById('expenseModal');

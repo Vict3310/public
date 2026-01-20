@@ -3,118 +3,193 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sales Terminal - Inventory & Sales</title>
-    <link rel="stylesheet" href="styles.css">
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <title>Sales - Inventory & Sales</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="modern.css">
+    <link rel="stylesheet" href="mobile-responsive.css">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 </head>
 <body>
-    <nav class="sidebar">
-        <h2>Inventory App</h2>
-        <ul>
-            <li><a href="dashboard.html">Dashboard</a></li>
-            <li><a href="inventory.html">Inventory</a></li>
-            <li><a href="sales.html" class="active">Sales</a></li>
-        </ul>
-        <button id="logoutBtn">Logout</button>
-    </nav>
-    <main class="main-content">
-        <h1>Sales Terminal</h1>
-
-        <div class="sales-layout">
-            <!-- Left: Product Selection -->
-            <div class="sales-grid-container">
-                <div class="search-container" style="width: 100%;">
-                    <input type="text" id="salesSearchInput" placeholder="Search products to sell..." style="width: 100%;">
-                    <div class="search-icon">🔍</div>
+    <div class="app-layout">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <span>Inventory Pro</span>
                 </div>
-                <button id="startScanBtn" class="btn-secondary" style="width: 100%; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 10px;">
-                    📷 Scan Barcode
+            </div>
+            
+            <div class="nav-menu">
+                <ul>
+                    <li class="nav-item">
+                        <a href="dashboard.html" class="nav-link">
+                            <i class="fas fa-chart-line nav-icon"></i>
+                            Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="inventory.html" class="nav-link">
+                            <i class="fas fa-boxes nav-icon"></i>
+                            Inventory
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="sales.html" class="nav-link active">
+                            <i class="fas fa-cash-register nav-icon"></i>
+                            Sales
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="receipt.html" class="nav-link">
+                            <i class="fas fa-receipt nav-icon"></i>
+                            Receipt
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="sidebar-footer">
+                <button id="logoutBtn" class="btn btn-secondary" style="width: 100%;">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
                 </button>
-                <div id="salesProductGrid" class="sales-product-grid">
-                    <!-- Products injected here -->
-                    <div class="loading"></div>
-                </div>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <div class="page-header">
+                <h1 class="page-title">Record Sale</h1>
+                <p class="page-subtitle">Add products to cart and complete the sale</p>
             </div>
 
-            <!-- Right: Sale Form -->
-            <div class="sales-panel">
-                <div class="selected-product-info" style="border-bottom: none; padding-bottom: 0; margin-bottom: 10px;">
-                    <h3>Current Order</h3>
-                </div>
-
-                <div id="cartItems" class="cart-items-list">
-                    <div class="empty-cart-message">Cart is empty</div>
-                </div>
-
-                <div class="cart-summary">
-                    <div class="summary-row">
-                        <span>Subtotal:</span>
-                        <span id="cartSubtotal">₦0.00</span>
+            <div class="grid" style="grid-template-columns: 1fr 400px; gap: var(--space-8);">
+                <!-- Product Selection -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Select Products</h3>
+                        <div class="search-container" style="width: 250px;">
+                            <input type="text" id="productSearch" class="form-input search-input" placeholder="Search products...">
+                            <div class="search-icon">
+                                <i class="fas fa-search"></i>
+                            </div>
+                        </div>
                     </div>
-                    <div class="summary-row">
-                        <span>Discount (₦):</span>
-                        <input type="number" id="cartDiscount" placeholder="0" min="0">
-                    </div>
-                    <div class="summary-row total">
-                        <span>Total:</span>
-                        <span id="cartTotal">₦0.00</span>
+                    <div class="card-content">
+                        <div id="productsList" class="products-grid">
+                            <!-- Products will be loaded here -->
+                        </div>
                     </div>
                 </div>
 
-                <div class="form-group" style="margin-top: 20px;">
-                    <label for="paymentMethod">Payment Method</label>
-                    <select id="paymentMethod">
-                        <option value="Cash">Cash</option>
-                        <option value="POS">POS / Card</option>
-                        <option value="Transfer">Bank Transfer</option>
-                    </select>
-                </div>
+                <!-- Cart -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Shopping Cart</h3>
+                        <button id="clearCart" class="btn btn-secondary btn-sm">
+                            <i class="fas fa-trash"></i>
+                            Clear
+                        </button>
+                    </div>
+                    <div class="card-content">
+                        <div id="cartItems" style="margin-bottom: var(--space-6);">
+                            <div class="text-center" style="padding: var(--space-8); color: var(--gray-500);">
+                                <i class="fas fa-shopping-cart" style="font-size: 3rem; margin-bottom: var(--space-4);"></i>
+                                <p>Cart is empty</p>
+                            </div>
+                        </div>
 
-                <button id="checkoutBtn" class="btn-primary" style="width: 100%; margin-top: 20px;" disabled>
-                    Checkout
-                </button>
+                        <!-- Cart Summary -->
+                        <div id="cartSummary" class="hidden" style="border-top: 1px solid var(--gray-200); padding-top: var(--space-4);">
+                            <div class="flex justify-between mb-4">
+                                <span>Subtotal:</span>
+                                <span id="subtotal">₦0.00</span>
+                            </div>
+                            <div class="flex justify-between mb-4">
+                                <span>Total Profit:</span>
+                                <span id="totalProfit" style="color: var(--success); font-weight: 600;">₦0.00</span>
+                            </div>
+                            <div class="flex justify-between mb-6" style="font-size: 1.125rem; font-weight: 700;">
+                                <span>Total:</span>
+                                <span id="total">₦0.00</span>
+                            </div>
 
-                <div id="saleSummary" class="alerts hidden" style="margin-top: 20px;">
-                    <ul>
-                        <li id="summaryText" class="text-success"></li>
-                    </ul>
-                    <button id="generateReceiptBtn" class="btn-secondary" style="width: 100%; margin-top: 10px;">Print Receipt</button>
+                            <!-- Customer Info -->
+                            <div class="form-group">
+                                <label for="customerName" class="form-label">Customer Name (Optional)</label>
+                                <input type="text" id="customerName" class="form-input" placeholder="Enter customer name">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="customerPhone" class="form-label">Phone Number (Optional)</label>
+                                <input type="tel" id="customerPhone" class="form-input" placeholder="Enter phone number">
+                            </div>
+
+                            <!-- Payment Method Selection -->
+                            <div class="form-group">
+                                <label class="form-label">Payment Method</label>
+                                <div class="payment-methods" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                    <label class="payment-option" style="display: flex; align-items: center; padding: 12px; border: 2px solid var(--gray-200); border-radius: 8px; cursor: pointer;">
+                                        <input type="radio" name="paymentMethod" value="cash" checked style="margin-right: 8px;">
+                                        <i class="fas fa-money-bill-wave" style="margin-right: 8px; color: var(--success);"></i>
+                                        Cash
+                                    </label>
+                                    <label class="payment-option" style="display: flex; align-items: center; padding: 12px; border: 2px solid var(--gray-200); border-radius: 8px; cursor: pointer;">
+                                        <input type="radio" name="paymentMethod" value="card" style="margin-right: 8px;">
+                                        <i class="fas fa-credit-card" style="margin-right: 8px; color: var(--primary);"></i>
+                                        Card
+                                    </label>
+                                    <label class="payment-option" style="display: flex; align-items: center; padding: 12px; border: 2px solid var(--gray-200); border-radius: 8px; cursor: pointer;">
+                                        <input type="radio" name="paymentMethod" value="transfer" style="margin-right: 8px;">
+                                        <i class="fas fa-university" style="margin-right: 8px; color: var(--warning);"></i>
+                                        Transfer
+                                    </label>
+                                    <label class="payment-option" style="display: flex; align-items: center; padding: 12px; border: 2px solid var(--gray-200); border-radius: 8px; cursor: pointer;">
+                                        <input type="radio" name="paymentMethod" value="credit" style="margin-right: 8px;">
+                                        <i class="fas fa-handshake" style="margin-right: 8px; color: var(--error);"></i>
+                                        Credit
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Discount Section -->
+                            <div class="form-group">
+                                <label for="discountAmount" class="form-label">Discount (₦)</label>
+                                <input type="number" id="discountAmount" class="form-input" placeholder="0.00" step="0.01" value="0">
+                            </div>
+
+                            <button id="completeSale" class="btn btn-success" style="width: 100%;">
+                                <i class="fas fa-check"></i>
+                                Complete Sale
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div class="recent-sales">
-            <h2>Recent Sales</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Product</th>
-                        <th>Qty</th>
-                        <th>Sold At</th>
-                        <th>Profit</th>
-                        <th>Date</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody id="salesTableBody"></tbody>
-            </table>
-        </div>
-
-        <!-- Scanner Modal -->
-        <div id="scannerModal" class="modal-overlay hidden">
-            <div class="modal-content" style="max-width: 400px;">
-                <div class="modal-header">
-                    <h2>Scan Product</h2>
-                    <button type="button" class="modal-close" id="closeScannerModal">&times;</button>
+            <!-- Recent Sales -->
+            <div class="card" style="margin-top: var(--space-8);">
+                <div class="card-header">
+                    <h3 class="card-title">Recent Sales</h3>
                 </div>
-                <div id="reader" style="width: 100%;"></div>
+                <div class="card-content">
+                    <div id="recentSales">
+                        <!-- Recent sales will be loaded here -->
+                    </div>
+                </div>
             </div>
-        </div>
-    </main>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+        </main>
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notificationContainer" style="position: fixed; top: 20px; right: 20px; z-index: 10000;"></div>
+
     <script src="firebase.js"></script>
+    <script src="notifications.js"></script>
+    <script src="mobile-nav.js"></script>
     <script src="auth.js"></script>
     <script src="sales.js"></script>
 </body>
