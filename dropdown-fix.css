@@ -1,0 +1,127 @@
+/* Dropdown and Select Element Fixes */
+
+/* Ensure all select elements have proper styling and visibility */
+select, .form-select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-color: var(--white) !important;
+    color: var(--gray-900) !important;
+    border: 2px solid var(--gray-200);
+    border-radius: var(--border-radius);
+    padding: var(--space-3) var(--space-4);
+    padding-right: 2.5rem;
+    font-size: var(--font-size-base);
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    
+    /* Custom dropdown arrow */
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+}
+
+select:hover, .form-select:hover {
+    border-color: var(--gray-400);
+}
+
+select:focus, .form-select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+/* Ensure dropdown options are visible and properly styled */
+select option, .form-select option {
+    color: var(--gray-900) !important;
+    background-color: var(--white) !important;
+    padding: 8px 12px;
+    font-size: var(--font-size-base);
+    border: none;
+}
+
+select option:hover,
+select option:focus,
+select option:checked,
+.form-select option:hover,
+.form-select option:focus,
+.form-select option:checked {
+    background-color: var(--primary-light) !important;
+    color: var(--primary) !important;
+}
+
+/* Mobile specific dropdown improvements */
+@media (max-width: 768px) {
+    select, .form-select {
+        font-size: 16px; /* Prevents zoom on iOS */
+        padding: 12px 16px;
+        padding-right: 3rem;
+        background-size: 1.2em 1.2em;
+        background-position: right 12px center;
+    }
+    
+    select option, .form-select option {
+        font-size: 16px;
+        padding: 12px;
+    }
+}
+
+/* Fix for category dropdown in inventory */
+#category {
+    width: 100%;
+    min-height: 44px;
+}
+
+#category option {
+    display: block;
+    padding: 8px 12px;
+    color: var(--gray-900) !important;
+    background: var(--white) !important;
+}
+
+/* Payment method radio button improvements */
+input[type="radio"] {
+    accent-color: var(--primary);
+    transform: scale(1.1);
+    margin-right: 8px;
+}
+
+/* Search input improvements */
+.search-input {
+    background-color: var(--white) !important;
+    color: var(--gray-900) !important;
+    border: 2px solid var(--gray-200) !important;
+}
+
+.search-input::placeholder {
+    color: var(--gray-500) !important;
+    opacity: 1 !important;
+}
+
+.search-input:focus {
+    color: var(--gray-900) !important;
+    background-color: var(--white) !important;
+}
+
+/* Ensure all form inputs have consistent styling */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="tel"],
+textarea {
+    color: var(--gray-900) !important;
+    background-color: var(--white) !important;
+}
+
+input[type="text"]::placeholder,
+input[type="email"]::placeholder,
+input[type="password"]::placeholder,
+input[type="number"]::placeholder,
+input[type="tel"]::placeholder,
+textarea::placeholder {
+    color: var(--gray-500) !important;
+    opacity: 1;
+}

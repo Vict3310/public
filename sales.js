@@ -196,8 +196,8 @@ class SalesManager {
 
         if (this.cart.length === 0) {
             container.innerHTML = `
-                <div class="text-center" style="padding: var(--space-8); color: var(--gray-500);">
-                    <i class="fas fa-shopping-cart" style="font-size: 3rem; margin-bottom: var(--space-4);"></i>
+                <div class="cart-empty-state">
+                    <i class="fas fa-shopping-cart"></i>
                     <p>Cart is empty</p>
                 </div>
             `;
@@ -206,43 +206,45 @@ class SalesManager {
         }
 
         container.innerHTML = this.cart.map(item => `
-            <div style="display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3); border: 1px solid var(--gray-200); border-radius: var(--border-radius); margin-bottom: var(--space-3);">
+            <div class="cart-item">
                 <img src="${item.imageUrl || 'https://via.placeholder.com/50x50?text=No+Image'}" 
-                     alt="${item.name}" style="width: 50px; height: 50px; object-fit: cover; border-radius: var(--border-radius);">
-                <div style="flex: 1;">
-                    <div style="font-weight: 600; font-size: 0.875rem;">${item.name}</div>
-                    <div style="color: var(--gray-600); font-size: 0.75rem;">Fixed: ₦${parseFloat(item.originalPrice).toLocaleString()}</div>
-                    <div style="margin-top: 4px;">
-                        <label style="display: flex; align-items: center; gap: 4px; font-size: 0.75rem;">
-                            <input type="radio" name="priceType_${item.id}" value="fixed" 
-                                   ${item.useCustomPrice ? '' : 'checked'} 
-                                   onchange="salesManager.togglePriceType('${item.id}', false)">
-                            Fixed Price
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 4px; font-size: 0.75rem; margin-top: 2px;">
-                            <input type="radio" name="priceType_${item.id}" value="custom" 
-                                   ${item.useCustomPrice ? 'checked' : ''} 
-                                   onchange="salesManager.togglePriceType('${item.id}', true)">
-                            Custom Price
-                        </label>
-                        ${item.useCustomPrice ? `
-                            <input type="number" value="${item.sellingPrice}" step="0.01" 
-                                   style="width: 80px; margin-top: 4px; padding: 2px 4px; border: 1px solid var(--gray-300); border-radius: 4px; font-size: 0.75rem;"
-                                   onchange="salesManager.updateCustomPrice('${item.id}', parseFloat(this.value))">
-                        ` : ''}
+                     alt="${item.name}" class="cart-item-image">
+                    <div class="cart-item-info">
+                        <div class="cart-item-name">${item.name}</div>
+                        <div class="cart-item-price">Fixed: ₦${parseFloat(item.originalPrice).toLocaleString()}</div>
+                        <div style="margin-top: var(--space-2);">
+                            <label style="display: flex; align-items: center; gap: 4px; font-size: 0.75rem; margin-bottom: 4px;">
+                                <input type="radio" name="priceType_${item.id}" value="fixed" 
+                                       ${item.useCustomPrice ? '' : 'checked'} 
+                                       onchange="salesManager.togglePriceType('${item.id}', false)">
+                                Fixed Price
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 4px; font-size: 0.75rem; margin-bottom: 4px;">
+                                <input type="radio" name="priceType_${item.id}" value="custom" 
+                                       ${item.useCustomPrice ? 'checked' : ''} 
+                                       onchange="salesManager.togglePriceType('${item.id}', true)">
+                                Custom Price
+                            </label>
+                            ${item.useCustomPrice ? `
+                                <input type="number" value="${item.sellingPrice}" step="0.01" 
+                                       style="width: 80px; margin-top: 4px; padding: 2px 4px; border: 1px solid var(--gray-300); border-radius: 4px; font-size: 0.75rem;"
+                                       onchange="salesManager.updateCustomPrice('${item.id}', parseFloat(this.value))">
+                            ` : ''}
+                        </div>
                     </div>
-                </div>
-                <div style="display: flex; align-items: center; gap: var(--space-2);">
-                    <button class="btn btn-secondary btn-sm" onclick="salesManager.updateQuantity('${item.id}', ${item.quantity - 1})">
-                        <i class="fas fa-minus"></i>
-                    </button>
-                    <input type="number" value="${item.quantity}" min="1" max="${item.originalQuantity}" 
-                           style="width: 60px; text-align: center; border: 1px solid var(--gray-300); border-radius: 4px; padding: 4px;"
-                           onchange="salesManager.updateQuantity('${item.id}', parseInt(this.value))">
-                    <button class="btn btn-secondary btn-sm" onclick="salesManager.updateQuantity('${item.id}', ${item.quantity + 1})">
-                        <i class="fas fa-plus"></i>
-                    </button>
-                    <button class="btn btn-error btn-sm" onclick="salesManager.removeFromCart('${item.id}')">
+                <div class="cart-item-controls">
+                    <div class="quantity-controls">
+                        <button class="btn btn-secondary btn-sm" onclick="salesManager.updateQuantity('${item.id}', ${item.quantity - 1})">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <input type="number" value="${item.quantity}" min="1" max="${item.originalQuantity}" 
+                               class="quantity-input"
+                               onchange="salesManager.updateQuantity('${item.id}', parseInt(this.value))">
+                        <button class="btn btn-secondary btn-sm" onclick="salesManager.updateQuantity('${item.id}', ${item.quantity + 1})">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    <button class="btn btn-danger btn-sm" onclick="salesManager.removeFromCart('${item.id}')">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
