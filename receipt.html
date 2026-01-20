@@ -69,15 +69,15 @@
 
             <div class="grid" style="grid-template-columns: 1fr 400px; gap: var(--space-8);">
                 <!-- Receipt Preview -->
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Receipt Preview</h3>
+                <div class="card receipt-card">
+                    <div class="card-header premium">
+                        <h3 class="card-title premium">Premium Receipt Preview</h3>
                         <div class="flex gap-2">
-                            <button id="printBtn" class="btn btn-secondary">
+                            <button id="printBtn" class="btn btn-print">
                                 <i class="fas fa-print"></i>
-                                Print
+                                Print Receipt
                             </button>
-                            <button id="whatsappBtn" class="btn btn-success">
+                            <button id="whatsappBtn" class="btn btn-whatsapp">
                                 <i class="fab fa-whatsapp"></i>
                                 Send WhatsApp
                             </button>
@@ -87,34 +87,61 @@
                         <div id="receiptPreview" class="receipt-container">
                             <div class="receipt-header">
                                 <h1>INVENTORY PRO</h1>
-                                <p>Your Business Address</p>
-                                <p>Phone: Your Phone Number</p>
+                                <p>📍 Your Premium Business Address</p>
+                                <p>📞 Phone: +234 XXX XXX XXXX</p>
+                                <p>✉️ Email: info@inventorypro.com</p>
                             </div>
                             <div class="receipt-body">
                                 <div class="receipt-info">
-                                    <p><strong>Order ID:</strong> <span id="orderId">-</span></p>
-                                    <p><strong>Date:</strong> <span id="date">-</span></p>
+                                    <div>
+                                        <p><strong>Order ID:</strong></p>
+                                        <span id="orderId">#INV-001</span>
+                                    </div>
+                                    <div>
+                                        <p><strong>Date & Time:</strong></p>
+                                        <span id="date">Today</span>
+                                    </div>
                                 </div>
                                 <table class="receipt-table">
                                     <thead>
                                         <tr>
-                                            <th>Item</th>
+                                            <th>Item Description</th>
                                             <th>Qty</th>
-                                            <th>Price</th>
+                                            <th>Unit Price</th>
                                             <th>Total</th>
                                         </tr>
                                     </thead>
                                     <tbody id="receiptItems">
-                                        <!-- Items will be populated here -->
+                                        <tr>
+                                            <td colspan="4" style="text-align: center; padding: 2rem; color: #64748b; font-style: italic;">
+                                                No items selected. Go to Sales to create a receipt.
+                                            </td>
+                                        </tr>
                                     </tbody>
                                 </table>
                                 <div class="receipt-total">
-                                    <p><strong>TOTAL: ₦<span id="totalAmount">0</span></strong></p>
+                                    <p>TOTAL AMOUNT: ₦<span id="totalAmount">0.00</span></p>
                                 </div>
                                 <div class="receipt-footer">
-                                    <p>Thank you for your business!</p>
+                                    <p>Thank you for choosing Inventory Pro!</p>
+                                    <p style="font-size: 0.75rem; margin-top: 0.5rem; opacity: 0.8;">Visit us again soon • Follow us on social media</p>
                                 </div>
                             </div>
+                        </div>
+                        
+                        <div class="receipt-actions">
+                            <button id="printBtn2" class="btn btn-print">
+                                <i class="fas fa-print"></i>
+                                Print
+                            </button>
+                            <button id="whatsappBtn2" class="btn btn-whatsapp">
+                                <i class="fab fa-whatsapp"></i>
+                                WhatsApp
+                            </button>
+                            <button id="downloadBtn" class="btn btn-secondary">
+                                <i class="fas fa-download"></i>
+                                Download PDF
+                            </button>
                         </div>
                     </div>
                 </div>
