@@ -3,33 +3,135 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#3b82f6">
-    <link rel="manifest" href="pwa-manifest.json">
-    <title>Login - Inventory & Sales</title>
+    <title>Login - Inventory Pro</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="modern.css">
-    <link rel="stylesheet" href="mobile-responsive.css">
-    <link rel="stylesheet" href="dropdown-fix.css">
+    <link rel="stylesheet" href="clean-modern.css">
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <style>
+        .auth-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: var(--space-4);
+        }
+        
+        .auth-card {
+            background: var(--white);
+            padding: var(--space-8);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-xl);
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        .auth-header {
+            text-align: center;
+            margin-bottom: var(--space-8);
+        }
+        
+        .auth-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-3);
+            margin-bottom: var(--space-6);
+        }
+        
+        .auth-logo-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--primary);
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white);
+            font-size: 1.25rem;
+        }
+        
+        .auth-logo-text {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--gray-900);
+        }
+        
+        .auth-title {
+            font-size: 1.875rem;
+            font-weight: 800;
+            color: var(--gray-900);
+            margin-bottom: var(--space-2);
+        }
+        
+        .auth-subtitle {
+            color: var(--gray-600);
+        }
+        
+        .auth-form {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-5);
+        }
+        
+        .auth-button {
+            width: 100%;
+            padding: var(--space-4);
+            background: var(--primary);
+            color: var(--white);
+            border: none;
+            border-radius: var(--radius);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .auth-button:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+        
+        .auth-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .auth-footer {
+            text-align: center;
+            margin-top: var(--space-6);
+            padding-top: var(--space-4);
+            border-top: 1px solid var(--gray-200);
+        }
+        
+        .auth-link {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .auth-link:hover {
+            text-decoration: underline;
+        }
+    </style>
 </head>
 <body>
     <div class="auth-container">
-        <!-- Login Form -->
-        <div id="loginCard" class="auth-card">
+        <div class="auth-card">
             <div class="auth-header">
-                <div class="logo">
-                    <div class="logo-icon">
+                <div class="auth-logo">
+                    <div class="auth-logo-icon">
                         <i class="fas fa-chart-line"></i>
                     </div>
-                    <span>Inventory Pro</span>
+                    <div class="auth-logo-text">Inventory Pro</div>
                 </div>
                 <h1 class="auth-title">Welcome Back</h1>
-                <p class="auth-subtitle">Sign in to your account to continue</p>
+                <p class="auth-subtitle">Sign in to your account</p>
             </div>
 
-            <form id="loginForm" class="auth-form">
+            <form class="auth-form" id="loginForm">
                 <div class="form-group">
                     <label for="email" class="form-label">Email Address</label>
                     <input type="email" id="email" class="form-input" placeholder="Enter your email" required>
@@ -40,58 +142,60 @@
                     <input type="password" id="password" class="form-input" placeholder="Enter your password" required>
                 </div>
 
-                <button type="submit" class="btn btn-primary" style="width: 100%;">
-                    <i class="fas fa-sign-in-alt"></i>
-                    Sign In
+                <button type="submit" class="auth-button" id="loginBtn">
+                    <span id="loginBtnText">Sign In</span>
                 </button>
             </form>
 
             <div class="auth-footer">
-                <p>Don't have an account? <a href="#" id="showSignup" class="auth-link">Sign up here</a></p>
-            </div>
-        </div>
-
-        <!-- Signup Form -->
-        <div id="signupCard" class="auth-card hidden">
-            <div class="auth-header">
-                <div class="logo">
-                    <div class="logo-icon">
-                        <i class="fas fa-chart-line"></i>
-                    </div>
-                    <span>Inventory Pro</span>
-                </div>
-                <h1 class="auth-title">Create Account</h1>
-                <p class="auth-subtitle">Sign up to get started</p>
-            </div>
-
-            <form id="signupForm" class="auth-form">
-                <div class="form-group">
-                    <label for="signupEmail" class="form-label">Email Address</label>
-                    <input type="email" id="signupEmail" class="form-input" placeholder="Enter your email" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="signupPassword" class="form-label">Password</label>
-                    <input type="password" id="signupPassword" class="form-input" placeholder="Create a password" required>
-                </div>
-
-                <button type="submit" class="btn btn-primary" style="width: 100%;">
-                    <i class="fas fa-user-plus"></i>
-                    Create Account
-                </button>
-            </form>
-
-            <div class="auth-footer">
-                <p>Already have an account? <a href="#" id="showLogin" class="auth-link">Sign in here</a></p>
+                <p>Don't have an account? <a href="signup.html" class="auth-link">Sign up</a></p>
             </div>
         </div>
     </div>
 
-    <!-- Notification Container -->
-    <div id="notificationContainer" style="position: fixed; top: 20px; right: 20px; z-index: 10000;"></div>
-
     <script src="firebase.js"></script>
-    <script src="notifications.js"></script>
-    <script src="auth.js"></script>
+    <script src="simple-notifications.js"></script>
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const loginBtn = document.getElementById('loginBtn');
+            const loginBtnText = document.getElementById('loginBtnText');
+            
+            loginBtn.disabled = true;
+            loginBtnText.textContent = 'Signing in...';
+            
+            try {
+                await firebase.auth().signInWithEmailAndPassword(email, password);
+                showSuccess('Login successful! Redirecting...');
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1000);
+            } catch (error) {
+                console.error('Login error:', error);
+                let errorMessage = 'Login failed. Please try again.';
+                
+                if (error.code === 'auth/user-not-found') {
+                    errorMessage = 'No account found with this email.';
+                } else if (error.code === 'auth/wrong-password') {
+                    errorMessage = 'Incorrect password.';
+                } else if (error.code === 'auth/invalid-email') {
+                    errorMessage = 'Invalid email address.';
+                }
+                
+                showError(errorMessage);
+                loginBtn.disabled = false;
+                loginBtnText.textContent = 'Sign In';
+            }
+        });
+
+        firebase.auth().onAuthStateChanged(function(user) {
+            if (user) {
+                window.location.href = 'dashboard.html';
+            }
+        });
+    </script>
 </body>
 </html>

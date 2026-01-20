@@ -4,12 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#3b82f6">
-    <link rel="manifest" href="pwa-manifest.json">
     <title>Inventory - Inventory & Sales</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="modern.css">
-    <link rel="stylesheet" href="mobile-responsive.css">
-    <link rel="stylesheet" href="dropdown-fix.css">
+    <link rel="stylesheet" href="clean-modern.css">
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -106,7 +103,7 @@
                 <div class="stat-card">
                     <div class="stat-header">
                         <div class="stat-title">Total Products</div>
-                        <div class="stat-icon" style="background: rgb(37 99 235 / 0.1); color: var(--primary);">
+                        <div class="stat-icon" style="background: rgba(59, 130, 246, 0.1); color: var(--primary);">
                             <i class="fas fa-boxes"></i>
                         </div>
                     </div>
@@ -116,7 +113,7 @@
                 <div class="stat-card">
                     <div class="stat-header">
                         <div class="stat-title">Total Value</div>
-                        <div class="stat-icon" style="background: rgb(16 185 129 / 0.1); color: var(--success);">
+                        <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success);">
                             <i class="fas fa-dollar-sign"></i>
                         </div>
                     </div>
@@ -126,7 +123,7 @@
                 <div class="stat-card">
                     <div class="stat-header">
                         <div class="stat-title">Low Stock</div>
-                        <div class="stat-icon" style="background: rgb(245 158 11 / 0.1); color: var(--warning);">
+                        <div class="stat-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--warning);">
                             <i class="fas fa-exclamation-triangle"></i>
                         </div>
                     </div>
@@ -153,7 +150,8 @@
                     <input type="hidden" id="editProductId">
                     
                     <div class="form-group text-center">
-                        <img id="imagePreview" src="" style="max-width: 120px; max-height: 120px; display: none; margin: 0 auto var(--space-4); border-radius: var(--border-radius); object-fit: cover; border: 2px solid var(--gray-200);">
+                        <label for="productImage" class="form-label">Product Image</label>
+                        <img id="imagePreview" class="image-preview">
                         <input type="file" id="productImage" accept="image/*" class="form-input">
                     </div>
                     
@@ -190,57 +188,49 @@
                     </div>
                     
                     <div class="form-group">
-                        <label for="storage" class="form-label">Storage (Optional)</label>
-                        <input type="text" id="storage" class="form-input" placeholder="e.g., 128GB, 1L, Large">
+                        <label for="costPrice" class="form-label">Cost Price (₦)</label>
+                        <input type="number" id="costPrice" class="form-input" placeholder="0.00" step="0.01" required>
                     </div>
                     
-                    <div class="grid grid-cols-2">
-                        <div class="form-group">
-                            <label for="costPrice" class="form-label">Cost Price (₦)</label>
-                            <input type="number" id="costPrice" class="form-input" placeholder="0.00" step="0.01" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="sellingPrice" class="form-label">Selling Price (₦)</label>
-                            <input type="number" id="sellingPrice" class="form-input" placeholder="0.00" step="0.01" required>
-                        </div>
+                    <div class="form-group">
+                        <label for="sellingPrice" class="form-label">Selling Price (₦)</label>
+                        <input type="number" id="sellingPrice" class="form-input" placeholder="0.00" step="0.01" required>
                     </div>
                     
-                    <div class="grid grid-cols-2">
-                        <div class="form-group">
-                            <label for="quantity" class="form-label">Quantity</label>
-                            <input type="number" id="quantity" class="form-input" placeholder="0" min="0" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="minStock" class="form-label">Min Stock Level</label>
-                            <input type="number" id="minStock" class="form-input" placeholder="5" min="0" value="5">
-                        </div>
+                    <div class="form-group">
+                        <label for="quantity" class="form-label">Quantity</label>
+                        <input type="number" id="quantity" class="form-input" placeholder="0" min="0" required>
                     </div>
                     
-                    <div class="flex gap-4">
-                        <button type="button" id="cancelBtn" class="btn btn-secondary" style="flex: 1;">
-                            Cancel
-                        </button>
-                        <button type="submit" class="btn btn-primary" style="flex: 1;">
-                            <i class="fas fa-save"></i>
-                            Save Product
-                        </button>
+                    <div class="form-group">
+                        <label for="minStock" class="form-label">Minimum Stock Level</label>
+                        <input type="number" id="minStock" class="form-input" placeholder="5" min="0" value="5">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="description" class="form-label">Description (Optional)</label>
+                        <textarea id="description" class="form-input" rows="3" placeholder="Product description..."></textarea>
                     </div>
                 </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="cancelBtn" class="btn btn-secondary">
+                    <i class="fas fa-times"></i>
+                    Cancel
+                </button>
+                <button type="submit" form="productForm" class="btn btn-primary">
+                    <i class="fas fa-save"></i>
+                    <span id="submitBtnText">Save Product</span>
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- Notification Container -->
-    <div id="notificationContainer" style="position: fixed; top: 20px; right: 20px; z-index: 10000;"></div>
-
     <script src="firebase.js"></script>
-    <script src="notifications.js"></script>
-    <script src="barcode-scanner.js"></script>
-    <script src="mobile-nav.js"></script>
-    <script src="pwa-manager.js"></script>
-    <script src="data-manager.js"></script>
-    <script src="whatsapp-manager.js"></script>
+    <script src="simple-notifications.js"></script>
+    <script src="simple-nav.js"></script>
     <script src="auth.js"></script>
     <script src="inventory.js"></script>
+    <script src="test-system.js"></script>
 </body>
 </html>

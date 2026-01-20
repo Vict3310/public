@@ -102,7 +102,11 @@ class InventoryManager {
             this.renderProducts();
         } catch (error) {
             console.error('Error loading products:', error);
-            showNotification('Error loading products: ' + error.message, 'error');
+            if (typeof showError === 'function') {
+                showError('Error loading products: ' + error.message);
+            } else {
+                alert('Error loading products: ' + error.message);
+            }
         }
     }
 
@@ -141,26 +145,33 @@ class InventoryManager {
         
         card.innerHTML = `
             <img src="${imageUrl}" alt="${product.name}" class="product-image" loading="lazy">
-            <div class="product-content">
+            <div class="product-info">
                 <h3 class="product-name">${product.name}</h3>
                 <p class="product-brand">${product.brand}</p>
                 <div class="product-price">₦${parseFloat(product.sellingPrice).toLocaleString()}</div>
-                <div class="product-stock">
-                    <span>Stock: ${product.quantity}</span>
-                    <span class="stock-badge ${stockStatus.class}">${stockStatus.text}</span>
-                </div>
-                <div class="product-actions">
-                    <button class="btn btn-secondary btn-sm" onclick="inventoryManager.editProduct('${product.id}')">
-                        <i class="fas fa-edit"></i>
-                        Edit
-                    </button>
-                    <button class="btn btn-error btn-sm" onclick="inventoryManager.deleteProduct('${product.id}')">
-                        <i class="fas fa-trash"></i>
-                        Delete
-                    </button>
+                <div class="product-stock ${stockStatus.class}">
+                    <i class="fas fa-box"></i>
+                    ${product.quantity} in stock
                 </div>
             </div>
+            <div class="product-actions">
+                <button class="btn btn-secondary edit-btn" data-id="${product.id}">
+                    <i class="fas fa-edit"></i>
+                    Edit
+                </button>
+                <button class="btn btn-danger delete-btn" data-id="${product.id}">
+                    <i class="fas fa-trash"></i>
+                    Delete
+                </button>
+            </div>
         `;
+        
+        // Add event listeners to buttons
+        const editBtn = card.querySelector('.edit-btn');
+        const deleteBtn = card.querySelector('.delete-btn');
+        
+        editBtn.addEventListener('click', () => this.editProduct(product.id));
+        deleteBtn.addEventListener('click', () => this.deleteProduct(product.id));
         
         return card;
     }
@@ -230,16 +241,16 @@ class InventoryManager {
         document.getElementById('brand').value = product.brand;
         document.getElementById('barcode').value = product.barcode || '';
         document.getElementById('category').value = product.category;
-        document.getElementById('storage').value = product.storage || '';
         document.getElementById('costPrice').value = product.costPrice;
         document.getElementById('sellingPrice').value = product.sellingPrice;
         document.getElementById('quantity').value = product.quantity;
-        document.getElementById('minStock').value = product.minStock;
+        document.getElementById('minStock').value = product.minStock || 5;
+        document.getElementById('description').value = product.description || '';
         
         if (product.imageUrl) {
             const preview = document.getElementById('imagePreview');
             preview.src = product.imageUrl;
-            preview.style.display = 'block';
+            preview.classList.add('show');
         }
     }
 
@@ -259,14 +270,22 @@ class InventoryManager {
                     .collection('products')
                     .doc(productId)
                     .update(formData);
-                showNotification('Product updated successfully', 'success');
+                if (typeof showSuccess === 'function') {
+                    showSuccess('Product updated successfully');
+                } else {
+                    alert('Product updated successfully');
+                }
             } else {
                 formData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
                 await firebase.firestore()
                     .collection('users').doc(this.currentUser.uid)
                     .collection('products')
                     .add(formData);
-                showNotification('Product added successfully', 'success');
+                if (typeof showSuccess === 'function') {
+                    showSuccess('Product added successfully');
+                } else {
+                    alert('Product added successfully');
+                }
             }
             
             this.hideProductModal();
@@ -275,7 +294,11 @@ class InventoryManager {
             
         } catch (error) {
             console.error('Error saving product:', error);
-            showNotification('Failed to save product: ' + error.message, 'error');
+            if (typeof showError === 'function') {
+                showError('Failed to save product: ' + error.message);
+            } else {
+                alert('Failed to save product: ' + error.message);
+            }
         }
     }
 
@@ -285,13 +308,37 @@ class InventoryManager {
             brand: document.getElementById('brand').value.trim(),
             barcode: document.getElementById('barcode').value.trim(),
             category: document.getElementById('category').value,
-            storage: document.getElementById('storage').value.trim(),
             costPrice: parseFloat(document.getElementById('costPrice').value),
             sellingPrice: parseFloat(document.getElementById('sellingPrice').value),
             quantity: parseInt(document.getElementById('quantity').value),
             minStock: parseInt(document.getElementById('minStock').value) || 5,
+            description: document.getElementById('description').value.trim(),
             imageUrl: document.getElementById('imagePreview').src || null
         };
+    }
+
+    async deleteProduct(productId) {
+        if (!confirm('Are you sure you want to delete this product?')) {
+            return;
+        }
+        
+        try {
+            if (!this.currentUser) throw new Error('User not authenticated');
+            
+            await firebase.firestore()
+                .collection('users').doc(this.currentUser.uid)
+                .collection('products')
+                .doc(productId)
+                .delete();
+            
+            showSuccess('Product deleted successfully');
+            await this.loadProducts();
+            this.updateStats();
+            
+        } catch (error) {
+            console.error('Error deleting product:', error);
+            showError('Failed to delete product: ' + error.message);
+        }
     }
 
     async editProduct(productId) {

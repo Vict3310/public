@@ -5,10 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Receipt - Inventory & Sales</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="modern.css">
-    <link rel="stylesheet" href="receipt-styles.css">
-    <link rel="stylesheet" href="mobile-responsive.css">
-    <link rel="stylesheet" href="dropdown-fix.css">
+    <link rel="stylesheet" href="clean-modern.css">
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -88,44 +85,71 @@
                         <div id="receiptPreview" class="receipt-container">
                             <div class="receipt-header">
                                 <h1>INVENTORY PRO</h1>
-                                <p>📍 Your Premium Business Address</p>
-                                <p>📞 Phone: +234 XXX XXX XXXX</p>
-                                <p>✉️ Email: info@inventorypro.com</p>
+                                <p>📍 123 Business Street, Lagos, Nigeria</p>
+                                <p>📞 +234 801 234 5678</p>
+                                <p>✉️ info@inventorypro.com</p>
+                                <p>🌐 www.inventorypro.com</p>
                             </div>
+                            
                             <div class="receipt-body">
                                 <div class="receipt-info">
                                     <div>
-                                        <p><strong>Order ID:</strong></p>
+                                        <p>Receipt No:</p>
                                         <span id="orderId">#INV-001</span>
                                     </div>
-                                    <div>
-                                        <p><strong>Date & Time:</strong></p>
-                                        <span id="date">Today</span>
+                                    <div style="text-align: right;">
+                                        <p>Date & Time:</p>
+                                        <span id="date">--/--/----</span>
                                     </div>
                                 </div>
+                                
+                                <div style="margin-bottom: var(--space-4); font-size: 0.75rem;">
+                                    <p style="margin: 0; color: var(--gray-600);">Customer:</p>
+                                    <span id="customerName" style="font-weight: 700;">Walk-in Customer</span>
+                                </div>
+                                
                                 <table class="receipt-table">
                                     <thead>
                                         <tr>
-                                            <th>Item Description</th>
+                                            <th>Item</th>
                                             <th>Qty</th>
-                                            <th>Unit Price</th>
+                                            <th>Price</th>
                                             <th>Total</th>
                                         </tr>
                                     </thead>
                                     <tbody id="receiptItems">
                                         <tr>
-                                            <td colspan="4" style="text-align: center; padding: 2rem; color: #64748b; font-style: italic;">
-                                                No items selected. Go to Sales to create a receipt.
+                                            <td colspan="4" style="text-align: center; padding: 2rem; color: var(--gray-500); font-style: italic;">
+                                                No items selected
                                             </td>
                                         </tr>
                                     </tbody>
                                 </table>
-                                <div class="receipt-total">
-                                    <p>TOTAL AMOUNT: ₦<span id="totalAmount">0.00</span></p>
+                                
+                                <div style="margin-bottom: var(--space-3); font-size: 0.75rem;">
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-1);">
+                                        <span>Subtotal:</span>
+                                        <span id="subtotalAmount">₦0.00</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-1);">
+                                        <span>Discount:</span>
+                                        <span id="discountAmount">₦0.00</span>
+                                    </div>
                                 </div>
+                                
+                                <div class="receipt-total">
+                                    <p>TOTAL: ₦<span id="totalAmount">0.00</span></p>
+                                </div>
+                                
+                                <div style="margin-bottom: var(--space-4); font-size: 0.75rem; text-align: center;">
+                                    <p style="margin: 0; color: var(--gray-600);">Payment Method:</p>
+                                    <span id="paymentMethod" style="font-weight: 700; text-transform: uppercase;">CASH</span>
+                                </div>
+                                
                                 <div class="receipt-footer">
-                                    <p>Thank you for choosing Inventory Pro!</p>
-                                    <p style="font-size: 0.75rem; margin-top: 0.5rem; opacity: 0.8;">Visit us again soon • Follow us on social media</p>
+                                    <p>Thank you for your business!</p>
+                                    <p>Please keep this receipt for your records</p>
+                                    <p style="margin-top: var(--space-2);">★★★ Visit us again soon ★★★</p>
                                 </div>
                             </div>
                         </div>
@@ -201,8 +225,8 @@
     <div id="notificationContainer" style="position: fixed; top: 20px; right: 20px; z-index: 10000;"></div>
 
     <script src="firebase.js"></script>
-    <script src="notifications.js"></script>
-    <script src="mobile-nav.js"></script>
+    <script src="simple-notifications.js"></script>
+    <script src="simple-nav.js"></script>
     <script src="auth.js"></script>
     <script src="receipt.js"></script>
 </body>
